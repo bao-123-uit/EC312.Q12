@@ -20,6 +20,9 @@ export class AuthService {
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
+      // Kiểm tra nếu email chứa 'admin' thì gán role admin
+      const role = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
+
       // Tạo tài khoản mới
       const customerData = {
         email,
@@ -27,6 +30,7 @@ export class AuthService {
         first_name: firstName,
         last_name: lastName,
         phone: phone_number || null,
+        role: role,
         is_verified: false,
         is_active: true,
         loyalty_points: 0,
@@ -86,10 +90,12 @@ export class AuthService {
         return { success: false, message: 'Email hoặc mật khẩu không đúng' };
       }
 
+      const customer = result.data;
       return {
         success: true,
         message: 'Đăng nhập thành công',
-        customer: result.data,
+        customer: customer,
+        role: customer.role || 'customer',
       };
     } catch (error) {
       console.error('Login exception:', error);

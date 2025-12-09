@@ -68,8 +68,15 @@ export default function RegisterPage() {
 
       if (result.success) {
         setSuccess('Đăng ký thành công! Đang chuyển hướng...');
+        
+        // Kiểm tra nếu là admin thì chuyển đến trang admin
+        const isAdmin = formData.email.toLowerCase().includes('admin');
         setTimeout(() => {
-          router.push('/login');
+          if (isAdmin) {
+            router.push('/login?admin=true');
+          } else {
+            router.push('/login');
+          }
         }, 2000);
       } else {
         setError(result.message || 'Đăng ký thất bại');

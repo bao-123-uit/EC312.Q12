@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Package, 
@@ -68,9 +69,11 @@ interface Category {
 }
 
 const AdminDashboard: React.FC = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -88,15 +91,25 @@ const AdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
+  // Kiểm tra quyền admin
   useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    const customer = localStorage.getItem('customer');
+    
+    if (!customer || userRole !== 'admin') {
+      router.push('/login');
+      return;
+    }
+    
+    setIsAuthenticated(true);
     setIsMounted(true);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    if (isMounted) {
+    if (isMounted && isAuthenticated) {
       loadData();
     }
-  }, [activeTab, isMounted]);
+  }, [activeTab, isMounted, isAuthenticated]);
 
   const loadData = async () => {
     try {
@@ -215,7 +228,13 @@ const AdminDashboard: React.FC = () => {
     c.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!isMounted) {
+  const handleLogout = () => {
+    localStorage.removeItem('customer');
+    localStorage.removeItem('userRole');
+    router.push('/login');
+  };
+
+  if (!isMounted || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>
@@ -250,7 +269,10 @@ const AdminDashboard: React.FC = () => {
         </nav>
 
         <div className="absolute bottom-0 w-full border-t border-gray-800">
-          <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition text-red-400">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition text-red-400"
+          >
             <LogOut className="w-5 h-5" />
             {isSidebarOpen && <span>Đăng Xuất</span>}
           </button>

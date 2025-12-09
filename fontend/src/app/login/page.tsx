@@ -38,9 +38,16 @@ export default function LoginPage() {
       const result = await loginCustomer(formData.email, formData.password);
 
       if (result.success) {
-        // Lưu thông tin user vào localStorage
+        // Lưu thông tin user và role vào localStorage
         localStorage.setItem('customer', JSON.stringify(result.customer));
-        router.push('/');
+        localStorage.setItem('userRole', result.role || 'customer');
+        
+        // Redirect dựa trên role
+        if (result.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
       } else {
         setError(result.message || 'Đăng nhập thất bại');
       }
