@@ -38,12 +38,19 @@ export default function LoginPage() {
       const result = await loginCustomer(formData.email, formData.password);
 
       if (result.success) {
-        // Lưu thông tin user và role vào localStorage
-        localStorage.setItem('customer', JSON.stringify(result.customer));
-        localStorage.setItem('userRole', result.role || 'customer');
+        // Lưu thông tin user vào localStorage (dùng bảng users)
+        const user = result.customer || result.user;
+        localStorage.setItem('customer', JSON.stringify(user));
+        
+        // Kiểm tra role admin (từ database hoặc email chứa 'admin')
+        const isAdmin = result.role === 'admin' || 
+                        user?.role === 'admin' || 
+                        user?.email?.toLowerCase().includes('admin');
+        
+        localStorage.setItem('userRole', isAdmin ? 'admin' : 'customer');
         
         // Redirect dựa trên role
-        if (result.role === 'admin') {
+        if (isAdmin) {
           router.push('/admin');
         } else {
           router.push('/');
@@ -69,7 +76,7 @@ export default function LoginPage() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Hoặc{' '}
             <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              tạo tài khoản mới
+              Tạo tài khoản mới
             </Link>
           </p>
         </div>

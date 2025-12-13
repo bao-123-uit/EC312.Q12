@@ -1,33 +1,71 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Heart, Search, Menu } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { fetchCategories, loginCustomer } from '@/lib/api-client';
 
 const AccountPage: React.FC = () => {
+  const router = useRouter();
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState('iPhone 16e');
+  const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
 
-  const devices = [
-    'iPhone 17 Pro Max',
-    'iPhone 17 Pro',
-    'iPhone 16 Pro Max',
-    'iPhone 16 Pro',
-    'iPhone 16e',
-    'iPhone 15 Pro Max',
-    'iPhone 15 Pro',
-    'iPhone 14 Pro Max',
-    'Samsung Galaxy S24'
-  ];
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        if (Array.isArray(data) && data.length > 0) {
+          const categoryNames = data.map((cat: any) => cat.category_name);
+          setDevices(categoryNames);
+          setSelectedDevice(categoryNames[0]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Đăng nhập với: ${email}`);
+    
+    try {
+      const result = await loginCustomer(email, password);
+      
+      if (result.success) {
+        // Lưu thông tin user vào localStorage
+        const user = result.customer || result.user;
+        localStorage.setItem('customer', JSON.stringify(user));
+        
+        // Kiểm tra role admin
+        const isAdmin = result.role === 'admin' || 
+                        user?.role === 'admin' || 
+                        user?.email?.toLowerCase().includes('admin');
+        
+        localStorage.setItem('userRole', isAdmin ? 'admin' : 'customer');
+        
+        // Hiển thị thông báo
+        alert(`Đăng nhập thành công với: ${email}`);
+        
+        // Redirect dựa trên role
+        if (isAdmin) {
+          router.push('/admin');
+        } else {
+          router.push('/');
+        }
+      } else {
+        alert(result.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại email và mật khẩu.');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+    }
   };
 
   const handleCreateAccount = () => {
@@ -81,7 +119,7 @@ const AccountPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -99,7 +137,7 @@ const AccountPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -179,31 +217,31 @@ const AccountPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Sign In Section */}
           <div>
-            <h1 className="text-3xl font-bold mb-4">WELCOME BACK</h1>
+            <h1 className="text-3xl font-bold mb-4">CHÀO MỪNG TRỞ LẠI</h1>
             <p className="text-gray-600 mb-8">
-              Sign in below to view your recent order details & manage account.
+              Đăng nhập để xem đơn hàng và quản lý tài khoản của bạn.
             </p>
 
             <form onSubmit={handleSignIn}>
               <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Email address:</label>
+                <label className="block text-sm font-semibold mb-2">Địa chỉ Email:</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
+                  placeholder="Nhập email của bạn"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-600"
                   required
                 />
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-semibold mb-2">Password:</label>
+                <label className="block text-sm font-semibold mb-2">Mật khẩu:</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder="Nhập mật khẩu"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-600"
                   required
                 />
@@ -213,30 +251,30 @@ const AccountPage: React.FC = () => {
                 type="submit"
                 className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition mb-4"
               >
-                SIGN IN
+                ĐĂNG NHẬP
               </button>
 
               <button
                 type="button"
                 className="w-full text-sm text-gray-600 hover:text-pink-600 underline"
               >
-                Forgot your password?
+                Quên mật khẩu?
               </button>
             </form>
           </div>
 
           {/* Create Account Section */}
           <div>
-            <h1 className="text-3xl font-bold mb-4">CREATE AN ACCOUNT</h1>
+            <h1 className="text-3xl font-bold mb-4">TẠO TÀI KHOẢN</h1>
             <p className="text-gray-600 mb-8">
-              Create a new BURGA account to track orders and manage your account.
+              Tạo tài khoản GoatTech mới để theo dõi đơn hàng và quản lý tài khoản.
             </p>
 
             <button
               onClick={handleCreateAccount}
               className="w-full bg-black text-white py-4 rounded-lg font-semibold hover:bg-gray-800 transition text-lg"
             >
-              CREATE ACCOUNT
+              TẠO TÀI KHOẢN
             </button>
           </div>
         </div>
@@ -247,7 +285,7 @@ const AccountPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -279,7 +317,7 @@ const AccountPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

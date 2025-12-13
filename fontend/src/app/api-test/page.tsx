@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  fetchCustomers,
+  fetchUsers,
   fetchProducts,
   fetchOrders,
   fetchCategories,
@@ -16,11 +16,11 @@ export default function ApiTest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFetchCustomers = async () => {
+  const handleFetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchCustomers();
+      const data = await fetchUsers();
       setCustomers(data);
     } catch (err: any) {
       setError(err.message || 'Lỗi khi gọi API');
@@ -90,7 +90,7 @@ export default function ApiTest() {
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
-            onClick={handleFetchCustomers}
+            onClick={handleFetchUsers}
             disabled={loading}
             className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded"
           >

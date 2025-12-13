@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Heart, Search, Menu, Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
 import Link from 'next/link';
+import { fetchCategories, createContactMessage } from '@/lib/api-client';
 
 const ContactPage: React.FC = () => {
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState('iPhone 16e');
+  const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [formData, setFormData] = useState({
@@ -17,28 +18,52 @@ const ContactPage: React.FC = () => {
     subject: '',
     message: ''
   });
+  const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
 
-  const devices = [
-    'iPhone 17 Pro Max',
-    'iPhone 17 Pro',
-    'iPhone 16 Pro Max',
-    'iPhone 16 Pro',
-    'iPhone 16e',
-    'iPhone 15 Pro Max',
-    'iPhone 15 Pro',
-    'iPhone 14 Pro Max',
-    'Samsung Galaxy S24'
-  ];
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        if (Array.isArray(data) && data.length > 0) {
+          const categoryNames = data.map((cat: any) => cat.category_name);
+          setDevices(categoryNames);
+          setSelectedDevice(categoryNames[0]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleCurrencyChange = (currency: string) => {
     setSelectedCurrency(currency);
     setIsCurrencyModalOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Cảm ơn ${formData.name}! Chúng tôi sẽ liên hệ lại với bạn sớm.`);
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    
+    try {
+      const result = await createContactMessage({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message
+      });
+      
+      if (result.success) {
+        alert(`Cảm ơn ${formData.name}! Tin nhắn của bạn đã được gửi thành công. Chúng tôi sẽ liên hệ lại với bạn sớm.`);
+        setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      } else {
+        alert('Có lỗi xảy ra khi gửi tin nhắn. Vui lòng thử lại!');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert(`Cảm ơn ${formData.name}! Chúng tôi sẽ liên hệ lại với bạn sớm.`);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -90,7 +115,7 @@ const ContactPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -108,7 +133,7 @@ const ContactPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -177,8 +202,8 @@ const ContactPage: React.FC = () => {
               <Phone className="w-8 h-8 text-pink-600" />
             </div>
             <h3 className="font-semibold text-lg mb-2">Điện Thoại</h3>
-            <p className="text-gray-600">+84 123 456 789</p>
-            <p className="text-gray-600">+84 987 654 321</p>
+            <p className="text-gray-600">+84 941 402 595</p>
+            <p className="text-gray-600">+84 914 100 559</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm text-center">
@@ -186,8 +211,8 @@ const ContactPage: React.FC = () => {
               <Mail className="w-8 h-8 text-blue-600" />
             </div>
             <h3 className="font-semibold text-lg mb-2">Email</h3>
-            <p className="text-gray-600">support@burga.vn</p>
-            <p className="text-gray-600">sales@burga.vn</p>
+            <p className="text-gray-600">support@GoatTech.vn</p>
+            <p className="text-gray-600">sales@GoatTech.vn</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm text-center">
@@ -195,8 +220,8 @@ const ContactPage: React.FC = () => {
               <MapPin className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="font-semibold text-lg mb-2">Địa Chỉ</h3>
-            <p className="text-gray-600">123 Nguyễn Huệ</p>
-            <p className="text-gray-600">Quận 1, TP.HCM</p>
+            <p className="text-gray-600">Khu phố 6, P.Linh Trung</p>
+            <p className="text-gray-600">Ho Chi Minh City, Vietnam</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm text-center">
@@ -344,7 +369,7 @@ const ContactPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -376,7 +401,7 @@ const ContactPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

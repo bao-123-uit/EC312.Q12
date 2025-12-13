@@ -52,7 +52,7 @@ const ProductDetailPage: React.FC = () => {
             description: foundProduct.description || 'Bảo vệ điện thoại của bạn bằng ốp cao cấp. Thiết kế vừa phong cách vừa bền vững.',
             images: [foundProduct.image, foundProduct.image, foundProduct.image, foundProduct.image],
             stock: 15,
-            sku: `BURGA-${foundProduct.id}`,
+            sku: `GOAT-${foundProduct.id}`,
             material: 'TPU + Polycarbonate',
             compatibility: [foundProduct.name],
             features: [
@@ -137,7 +137,7 @@ const ProductDetailPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -371,7 +371,7 @@ const ProductDetailPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -403,7 +403,7 @@ const ProductDetailPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

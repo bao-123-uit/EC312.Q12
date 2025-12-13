@@ -63,7 +63,7 @@ const CategoriesPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -81,7 +81,7 @@ const CategoriesPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -227,7 +227,7 @@ const CategoriesPage: React.FC = () => {
       <footer className="bg-gray-900 text-white py-12 mt-16">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">BURGA</h3>
+            <h3 className="text-xl font-bold mb-4">GoatTech</h3>
             <p className="text-gray-400">Ốp lưng cao cấp, phong cách Việt Nam</p>
           </div>
           <div>
@@ -256,7 +256,7 @@ const CategoriesPage: React.FC = () => {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-          <p>&copy; 2024 BURGA Vietnam. All rights reserved.</p>
+          <p>&copy; 2024 GoatTech Vietnam. All rights reserved.</p>
         </div>
       </footer>
     </div>

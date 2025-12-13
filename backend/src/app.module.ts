@@ -8,7 +8,10 @@ import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { OrderModule } from './order/order.module';
 import { CategoryModule } from './category/category.module';
-import { CustomerModule } from './customer/customer.module';
+import { UsersModule } from './users/users.module';
+import { ReviewModule } from './review/review.module';
+import { ContactModule } from './contact/contact.module';
+import { CollectionModule } from './collection/collection.module';
 
 @Module({
   imports: [
@@ -17,7 +20,10 @@ import { CustomerModule } from './customer/customer.module';
     ProductModule,
     OrderModule,
     CategoryModule,
-    CustomerModule,
+    UsersModule,
+    ReviewModule,
+    ContactModule,
+    CollectionModule,
   ],
   controllers: [AppController, PaymentController],
   providers: [AppService, SupabaseService],

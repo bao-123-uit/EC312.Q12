@@ -1,27 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Heart, Search, Menu, Award, Users, Globe, Truck, Shield, Star } from 'lucide-react';
 import Link from 'next/link';
+import { fetchCategories } from '@/lib/api-client';
 
 const AboutPage: React.FC = () => {
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState('iPhone 16e');
+  const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
 
-  const devices = [
-    'iPhone 17 Pro Max',
-    'iPhone 17 Pro',
-    'iPhone 16 Pro Max',
-    'iPhone 16 Pro',
-    'iPhone 16e',
-    'iPhone 15 Pro Max',
-    'iPhone 15 Pro',
-    'iPhone 14 Pro Max',
-    'Samsung Galaxy S24'
-  ];
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        if (Array.isArray(data) && data.length > 0) {
+          const categoryNames = data.map((cat: any) => cat.category_name);
+          setDevices(categoryNames);
+          setSelectedDevice(categoryNames[0]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleCurrencyChange = (currency: string) => {
     setSelectedCurrency(currency);
@@ -29,10 +35,10 @@ const AboutPage: React.FC = () => {
   };
 
   const stats = [
-    { number: '500K+', label: 'Khách Hàng Hài Lòng', icon: Users },
-    { number: '1M+', label: 'Sản Phẩm Đã Bán', icon: Award },
+    { number: '100K+', label: 'Khách Hàng Hài Lòng', icon: Users },
+    { number: '100K+', label: 'Sản Phẩm Đã Bán', icon: Award },
     { number: '50+', label: 'Quốc Gia', icon: Globe },
-    { number: '4.9/5', label: 'Đánh Giá Trung Bình', icon: Star }
+    { number: '4.5/5', label: 'Đánh Giá Trung Bình', icon: Star }
   ];
 
   const values = [
@@ -60,24 +66,24 @@ const AboutPage: React.FC = () => {
 
   const team = [
     {
-      name: 'Nguyễn Văn A',
+      name: 'Phạm Công Đoàn',
       role: 'Giám Đốc Điều Hành',
-      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop'
+      image: 'đoàn.jpg'
     },
     {
-      name: 'Trần Thị B',
-      role: 'Giám Đốc Sáng Tạo',
-      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop'
+      name: 'Võ Trần Minh Bảo',
+      role: 'Trưởng Phòng Thiết Kế',
+      image: 'bảo.jpg'
     },
     {
-      name: 'Lê Văn C',
+      name: 'Triệu Quân Sự',
       role: 'Trưởng Phòng Marketing',
-      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop'
+      image: 'lĩnh.jpg'
     },
     {
-      name: 'Phạm Thị D',
+      name: 'Đoàn Văn Sáng',
       role: 'Trưởng Phòng Kinh Doanh',
-      image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop'
+      image: 'nam.png'
     }
   ];
 
@@ -123,7 +129,7 @@ const AboutPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -141,7 +147,7 @@ const AboutPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -197,7 +203,7 @@ const AboutPage: React.FC = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">Về BURGA</h1>
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">Về GoatTech</h1>
           <p className="text-xl md:text-2xl max-w-3xl mx-auto">
             Chúng tôi là thương hiệu ốp điện thoại số 1 Việt Nam, mang đến sự bảo vệ hoàn hảo với phong cách độc đáo
           </p>
@@ -226,13 +232,13 @@ const AboutPage: React.FC = () => {
             <div>
               <h2 className="text-4xl font-bold mb-6">Câu Chuyện Của Chúng Tôi</h2>
               <p className="text-gray-600 mb-4 leading-relaxed">
-                BURGA được thành lập vào năm 2018 với sứ mệnh mang đến những sản phẩm bảo vệ điện thoại chất lượng cao và thiết kế độc đáo cho người dùng Việt Nam.
+                GoatTech được thành lập vào năm 2018 với sứ mệnh mang đến những sản phẩm bảo vệ điện thoại chất lượng cao và thiết kế độc đáo cho người dùng Việt Nam.
               </p>
               <p className="text-gray-600 mb-4 leading-relaxed">
                 Bắt đầu từ một cửa hàng nhỏ ở TP.HCM, chúng tôi đã phát triển thành thương hiệu ốp điện thoại được yêu thích nhất với hơn 500,000 khách hàng trên toàn quốc.
               </p>
               <p className="text-gray-600 mb-4 leading-relaxed">
-                Mỗi sản phẩm của BURGA đều được thiết kế tỉ mỉ, từ việc chọn vật liệu cao cấp đến quy trình sản xuất nghiêm ngặt, đảm bảo mang đến trải nghiệm tốt nhất cho khách hàng.
+                Mỗi sản phẩm của GoatTech đều được thiết kế tỉ mỉ, từ việc chọn vật liệu cao cấp đến quy trình sản xuất nghiêm ngặt, đảm bảo mang đến trải nghiệm tốt nhất cho khách hàng.
               </p>
               <Link href="/shop" className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition">
                 Khám Phá Sản Phẩm
@@ -240,22 +246,22 @@ const AboutPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <img
-                src="https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400&h=300&fit=crop"
-                alt="BURGA Store"
+                src="about1.jpg"
+                alt="GoatTech Store"
                 className="rounded-xl shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.unsplash.com/photo-1565849904461-04a3cc76e3a9?w=400&h=300&fit=crop"
+                src="about2.jpg"
                 alt="Phone Cases"
                 className="rounded-xl shadow-lg w-full h-48 object-cover mt-8"
               />
               <img
-                src="https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=300&fit=crop"
+                src="about3.jpg"
                 alt="Design Process"
                 className="rounded-xl shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop"
+                src="about4.jpg"
                 alt="Quality Check"
                 className="rounded-xl shadow-lg w-full h-48 object-cover mt-8"
               />
@@ -326,7 +332,7 @@ const AboutPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -358,7 +364,7 @@ const AboutPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

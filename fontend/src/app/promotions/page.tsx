@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Heart, Search, Menu, Tag, Clock, Percent, Gift, Star, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { fetchCategories } from '@/lib/api-client';
 
 interface Deal {
   id: number;
@@ -18,22 +19,27 @@ interface Deal {
 const PromotionsPage: React.FC = () => {
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-  const [selectedDevice, setSelectedDevice] = useState('iPhone 16e');
+  const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
 
-  const devices = [
-    'iPhone 17 Pro Max',
-    'iPhone 17 Pro',
-    'iPhone 16 Pro Max',
-    'iPhone 16 Pro',
-    'iPhone 16e',
-    'iPhone 15 Pro Max',
-    'iPhone 15 Pro',
-    'iPhone 14 Pro Max',
-    'Samsung Galaxy S24'
-  ];
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchCategories();
+        if (Array.isArray(data) && data.length > 0) {
+          const categoryNames = data.map((cat: any) => cat.category_name);
+          setDevices(categoryNames);
+          setSelectedDevice(categoryNames[0]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleCurrencyChange = (currency: string) => {
     setSelectedCurrency(currency);
@@ -109,7 +115,7 @@ const PromotionsPage: React.FC = () => {
     },
     {
       id: 7,
-      title: 'Sinh Nhật BURGA',
+      title: 'Sinh Nhật GoatTech',
       description: 'Giảm 35% nhân dịp sinh nhật thương hiệu',
       discount: '35%',
       code: 'BDAY35',
@@ -194,7 +200,7 @@ const PromotionsPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -445,7 +451,7 @@ const PromotionsPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -477,7 +483,7 @@ const PromotionsPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

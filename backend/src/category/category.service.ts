@@ -10,6 +10,11 @@ export class CategoryService {
     return result.data || [];
   }
 
+  async getCategoriesWithProductCount() {
+    const result = await this.supabaseService.getCategoriesWithProductCount();
+    return result.data || [];
+  }
+
   async getRootCategories() {
     const result = await this.supabaseService.getRootCategories();
     return result.data || [];
@@ -28,5 +33,20 @@ export class CategoryService {
   async getCategoryById(categoryId: number) {
     const result = await this.supabaseService.getCategoryById(categoryId);
     return result.data || null;
+  }
+
+  async createCategory(categoryData: any) {
+    const result = await this.supabaseService.createCategory(categoryData);
+    return result;
+  }
+
+  async updateCategory(categoryId: number, categoryData: any) {
+    const result = await this.supabaseService.updateCategory(categoryId, categoryData);
+    return result;
+  }
+
+  async deleteCategory(categoryId: number) {
+    const result = await this.supabaseService.deleteCategory(categoryId);
+    return result;
   }
 }

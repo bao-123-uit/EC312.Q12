@@ -15,26 +15,17 @@ export class AuthService {
         return { success: false, message: 'Email đã được đăng ký' };
       }
 
-      // Tách full_name thành first_name và last_name
-      const nameParts = (full_name || '').trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
       // Kiểm tra nếu email chứa 'admin' thì gán role admin
       const role = email.toLowerCase().includes('admin') ? 'admin' : 'customer';
 
-      // Tạo tài khoản mới
+      // Tạo tài khoản mới - phù hợp với bảng users
       const customerData = {
         email,
         password_hash: password, // Trong production nên hash password
-        first_name: firstName,
-        last_name: lastName,
+        full_name: full_name || '',
         phone: phone_number || null,
         role: role,
-        is_verified: false,
-        is_active: true,
-        loyalty_points: 0,
-        total_spent: 0,
+        status: 'active',
         created_at: new Date().toISOString(),
       };
 
@@ -51,15 +42,15 @@ export class AuthService {
 
       const newCustomer = result.data?.[0];
 
-      // Nếu có địa chỉ, tạo địa chỉ trong bảng customer_addresses
+      // Nếu có địa chỉ, tạo địa chỉ trong bảng user_addresses
       if (address && newCustomer) {
         const addressData = {
-          customer_id: newCustomer.customer_id,
+          user_id: newCustomer.id,
           address_type: 'home',
           full_name: full_name,
           phone: phone_number || null,
           address_line1: address,
-          city: 'TP.HCM', // Mặc định, có thể cải thiện sau
+          city: 'TP.HCM',
           country: 'Vietnam',
           is_default: true,
         };

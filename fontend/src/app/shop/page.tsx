@@ -3,17 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Menu, ShoppingCart, User, Heart, ChevronDown, Star, Filter, X } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts } from '@/lib/api-client';
+import { fetchProducts, createMomoPayment } from '@/lib/api-client';
+import { SHOP_CATEGORIES } from '@/lib/constants';
 
 interface Product {
   id: number;
+  product_id?: number;
   name: string;
+  product_name?: string;
   price: number;
   image: string;
+  image_url?: string;
   rating: number;
   reviews: number;
   tag?: string;
   category: string;
+  category_id?: number;
 }
 
 interface CartItem extends Product {
@@ -32,6 +37,7 @@ const ShopPage: React.FC = () => {
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Fetch products from backend
   useEffect(() => {
@@ -39,7 +45,18 @@ const ShopPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await fetchProducts(12); // Fetch 12 products
-        setProducts(data);
+        // Map database format to component format
+        const mappedProducts = data.map((p: any, index: number) => ({
+          id: p.product_id || p.id || index + 1,
+          name: p.product_name || p.name || 'Sản phẩm',
+          price: p.price || 0,
+          image: p.image_url || p.image || 'https://images.unsplash.com/photo-1565849904461-04a3cc76e3a9?w=400&h=400&fit=crop',
+          rating: p.rating || 4.5,
+          reviews: p.reviews || 0,
+          tag: p.is_new ? 'MỚI' : (p.is_featured ? 'NỔI BẬT' : p.tag),
+          category: p.category || 'Ốp lưng'
+        }));
+        setProducts(mappedProducts);
       } catch (error) {
         console.error('Error loading products:', error);
         // Fallback to dummy data if API fails
@@ -73,7 +90,7 @@ const ShopPage: React.FC = () => {
     loadProducts();
   }, []);
 
-  const categories = ['Tất Cả', 'Ốp iPhone 17', 'Ốp iPhone 16', 'Ốp iPhone 15', 'Ốp Samsung', 'Ốp Khác'];
+  const categories = SHOP_CATEGORIES;
 
   const filteredProducts = products
     .filter(product => selectedCategory === 'Tất Cả' || product.category === selectedCategory)
@@ -165,7 +182,7 @@ const ShopPage: React.FC = () => {
                       <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded-lg" />
                       <div className="flex-1">
                         <h3 className="font-semibold mb-1">{item.name}</h3>
-                        <p className="text-pink-600 font-bold mb-2">${item.price.toFixed(2)}</p>
+                        <p className="text-pink-600 font-bold mb-2">{item.price.toLocaleString('vi-VN')}₫</p>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-300">
                             <button
@@ -191,7 +208,7 @@ const ShopPage: React.FC = () => {
                         </div>
                       </div>
                       <div className="text-right font-bold">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {(item.price * item.quantity).toLocaleString('vi-VN')}₫
                       </div>
                     </div>
                   ))}
@@ -203,10 +220,46 @@ const ShopPage: React.FC = () => {
               <div className="p-6 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-lg font-semibold">Tổng Cộng:</span>
-                  <span className="text-2xl font-bold text-pink-600">${cartTotal.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-pink-600">{cartTotal.toLocaleString('vi-VN')}₫</span>
                 </div>
-                <button className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700 transition">
-                  Thanh Toán
+                <button 
+                  onClick={async () => {
+                    try {
+                      setCheckoutLoading(true);
+                      // Sử dụng giá thực từ database (VNĐ)
+                      const totalVND = Math.round(cartTotal);
+                      const orderItems = cartItems.map(item => `${item.name} x${item.quantity}`).join(', ');
+                      const result = await createMomoPayment({
+                        amount: totalVND,
+                        orderInfo: `GoatTech - ${orderItems}`,
+                      });
+                      
+                      if (result?.data?.payUrl) {
+                        window.location.href = result.data.payUrl;
+                      } else {
+                        alert('Không thể tạo thanh toán. Vui lòng thử lại!');
+                      }
+                    } catch (error: any) {
+                      console.error('Payment error:', error);
+                      alert('Lỗi thanh toán: ' + (error.message || 'Vui lòng thử lại!'));
+                    } finally {
+                      setCheckoutLoading(false);
+                    }
+                  }}
+                  disabled={checkoutLoading}
+                  className="w-full bg-pink-600 text-white py-3 rounded-lg font-medium hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    '💳 Thanh Toán MoMo'
+                  )}
                 </button>
               </div>
             )}
@@ -219,7 +272,7 @@ const ShopPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -237,7 +290,7 @@ const ShopPage: React.FC = () => {
             </div>
 
             <Link href="/" className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </Link>
 
             <div className="flex items-center gap-4">
@@ -308,17 +361,18 @@ const ShopPage: React.FC = () => {
 
               {/* Category Filter */}
               <div className="mb-6">
-                <h3 className="font-semibold mb-4">Loại Ốp</h3>
+                <h3 className="font-semibold mb-4">Loại Sản Phẩm</h3>
                 <div className="space-y-2">
                   {categories.map(category => (
-                    <label key={category} className="flex items-center gap-2 cursor-pointer">
+                    <label key={category.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition">
                       <input
                         type="checkbox"
-                        checked={selectedCategory === category}
-                        onChange={() => setSelectedCategory(category)}
-                        className="w-4 h-4 rounded"
+                        checked={selectedCategory === category.name}
+                        onChange={() => setSelectedCategory(category.name)}
+                        className="w-4 h-4 rounded accent-pink-600"
                       />
-                      <span className="text-sm">{category}</span>
+                      <span className="text-lg">{category.icon}</span>
+                      <span className="text-sm">{category.name}</span>
                     </label>
                   ))}
                 </div>
@@ -466,7 +520,7 @@ const ShopPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -498,7 +552,7 @@ const ShopPage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>

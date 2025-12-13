@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase.service';
 
 @Injectable()
-export class CustomerService {
+export class UsersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async getCustomers() {
+  async getUsers() {
     const result = await this.supabaseService.getCustomers();
     return result.data || [];
   }

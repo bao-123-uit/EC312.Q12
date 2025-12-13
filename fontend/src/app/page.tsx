@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Menu, ShoppingCart, User, Heart, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts } from '@/lib/api-client';
+import { fetchProducts, fetchCategories, fetchCategoriesWithCount, createMomoPayment } from '@/lib/api-client';
+import { PRODUCT_CATEGORIES, BANNER_SLIDES } from '@/lib/constants';
 
 interface Product {
   id: number;
@@ -19,7 +20,7 @@ interface CartItem extends Product {
   quantity: number;
 }
 
-const BurgaHomepage: React.FC = () => {
+const GoatTechHomepage: React.FC = () => {
   const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -31,6 +32,51 @@ const BurgaHomepage: React.FC = () => {
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
+  const [categories, setCategories] = useState(PRODUCT_CATEGORIES);
+
+  // Fetch categories for device dropdown and product categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        // Fetch categories với số lượng sản phẩm
+        const data = await fetchCategoriesWithCount();
+        if (Array.isArray(data) && data.length > 0) {
+          const categoryNames = data.map((cat: any) => cat.category_name);
+          setDevices(categoryNames);
+          setSelectedDevice(categoryNames[0]);
+          
+          // Map icons cho từng category
+          const iconMap: Record<string, string> = {
+            'Ốp lưng': '📱',
+            'Cường lực màn hình': '🛡️',
+            'Miếng dán camera': '📷',
+            'Cáp sạc': '⚡',
+            'Tai nghe': '🎧',
+            'Dây đeo điện thoại': '🔗',
+            'Sticker trang trí': '✨',
+            'Phụ kiện': '🎁',
+            'Sạc dự phòng': '🔋',
+            'Giá đỡ điện thoại': '📲'
+          };
+          
+          // Cập nhật categories với dữ liệu từ database
+          const mappedCategories = data.map((cat: any) => ({
+            name: cat.category_name,
+            icon: iconMap[cat.category_name] || '📦',
+            count: cat.product_count || 0
+          }));
+          setCategories(mappedCategories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to hardcoded categories
+        setCategories(PRODUCT_CATEGORIES);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Fetch products from backend
   useEffect(() => {
@@ -93,48 +139,7 @@ const BurgaHomepage: React.FC = () => {
     loadProducts();
   }, []);
 
-  const devices = [
-    'iPhone 17 Pro Max',
-    'iPhone 17 Pro',
-    'iPhone 16 Pro Max',
-    'iPhone 16 Pro',
-    'iPhone 15 Pro Max',
-    'iPhone 15 Pro',
-    'iPhone 14 Pro Max',
-    'iPhone 14 Pro',
-    'iPhone 13 Pro Max',
-    'iPhone 13 Pro',
-    'iPhone 12 Pro Max',
-    'iPhone 12 Pro',
-    'iPhone SE',
-    'Samsung Galaxy S24'
-  ];
-
-  const categories = [
-    { name: 'Ốp iPhone 17', icon: '🌟', count: 120 },
-    { name: 'Ốp iPhone 16', icon: '💎', count: 95 },
-    { name: 'Ốp iPhone 15', icon: '✨', count: 85 },
-    { name: 'Ốp Samsung', icon: '🎨', count: 60 },
-    { name: 'Ốp Khác', icon: '🔥', count: 40 }
-  ];
-
-  const bannerSlides = [
-    {
-      title: 'Ốp Điện Thoại Cao Cấp - Shop #1 Việt Nam',
-      subtitle: 'Bảo Vệ Điện Thoại Của Bạn Với Phong Cách',
-      bg: 'from-purple-600 to-pink-600'
-    },
-    {
-      title: 'Bộ Sưu Tập Xuân 2024 - Mẫu Mới Đặc Biệt',
-      subtitle: 'Thiết Kế Độc Đáo, Chất Lượng Tuyệt Vời',
-      bg: 'from-blue-600 to-cyan-600'
-    },
-    {
-      title: 'Miễn Phí Vận Chuyển - Đơn Hàng Trên 100K',
-      subtitle: 'Nhanh, An Toàn, Uy Tín',
-      bg: 'from-green-600 to-teal-600'
-    }
-  ];
+  const bannerSlides = BANNER_SLIDES;
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
@@ -240,7 +245,7 @@ const BurgaHomepage: React.FC = () => {
                       <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded-lg" />
                       <div className="flex-1">
                         <h3 className="font-semibold mb-2 line-clamp-2">{item.name}</h3>
-                        <p className="text-pink-600 font-bold mb-2">${item.price}</p>
+                        <p className="text-pink-600 font-bold mb-2">{item.price.toLocaleString('vi-VN')}₫</p>
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -272,14 +277,48 @@ const BurgaHomepage: React.FC = () => {
             {cartItems.length > 0 && (
               <div className="p-6 border-t bg-gray-50">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-lg font-semibold">Tổng cộng:</span>
-                  <span className="text-2xl font-bold text-pink-600">${cartTotal.toFixed(2)}</span>
+                  <span className="text-lg font-semibold">Tổng Cộng:</span>
+                  <span className="text-2xl font-bold text-pink-600">{cartTotal.toLocaleString('vi-VN')}₫</span>
                 </div>
                 <button
-                  onClick={() => alert('Chức năng thanh toán đang được phát triển!')}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition"
+                  onClick={async () => {
+                    try {
+                      setCheckoutLoading(true);
+                      // Sử dụng giá thực từ database (VNĐ)
+                      const totalVND = Math.round(cartTotal);
+                      const orderItems = cartItems.map(item => `${item.name} x${item.quantity}`).join(', ');
+                      const result = await createMomoPayment({
+                        amount: totalVND,
+                        orderInfo: `GoatTech - ${orderItems}`,
+                      });
+                      
+                      if (result?.data?.payUrl) {
+                        // Chuyển hướng đến trang thanh toán MoMo
+                        window.location.href = result.data.payUrl;
+                      } else {
+                        alert('Không thể tạo thanh toán. Vui lòng thử lại!');
+                      }
+                    } catch (error: any) {
+                      console.error('Payment error:', error);
+                      alert('Lỗi thanh toán: ' + (error.message || 'Vui lòng thử lại!'));
+                    } finally {
+                      setCheckoutLoading(false);
+                    }
+                  }}
+                  disabled={checkoutLoading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Thanh Toán
+                  {checkoutLoading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                      </svg>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    '💳 Thanh Toán MoMo'
+                  )}
                 </button>
               </div>
             )}
@@ -327,7 +366,7 @@ const BurgaHomepage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
           <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
           <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi BURGA: Mua 4 ốp - Trả tiền 2 ốp</span>
+          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
         </div>
       </div>
 
@@ -345,7 +384,7 @@ const BurgaHomepage: React.FC = () => {
             </div>
 
             <div className="text-2xl font-bold tracking-wider">
-              BURGA
+              GoatTech
             </div>
 
             <div className="flex items-center gap-4">
@@ -388,7 +427,7 @@ const BurgaHomepage: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
             <Link href="/shop" className="text-sm font-medium hover:text-pink-600">Cửa Hàng</Link>
-            <button onClick={() => alert('Chuyển đến Bộ Sưu Tập')} className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button>
+            <Link href="/collections" className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</Link>
             <Link href="/about" className="text-sm font-medium hover:text-pink-600">Về Chúng Tôi</Link>
             <Link href="/contact" className="text-sm font-medium hover:text-pink-600">Liên Hệ</Link>
             <Link href="/promotions" className="text-sm font-medium text-red-600">Khuyến Mại</Link>
@@ -441,17 +480,31 @@ const BurgaHomepage: React.FC = () => {
 
       {/* Categories */}
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <h2 className="text-3xl font-bold mb-8 text-center">Mua Ốp Theo Dòng Máy</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {categories.map((category) => (
-            <div
-              key={category.name}
-              className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer text-center"
-            >
-              <h3 className="font-semibold mb-1">{category.name}</h3>
-              <p className="text-sm text-gray-500">{category.count} sản phẩm</p>
-            </div>
-          ))}
+        <h2 className="text-3xl font-bold mb-8 text-center">Các sản phẩm chính</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          {categories.map((category, index) => {
+            const colors = [
+              'from-pink-500 to-rose-500',
+              'from-blue-500 to-cyan-500',
+              'from-purple-500 to-indigo-500',
+              'from-amber-500 to-orange-500',
+              'from-emerald-500 to-teal-500',
+              'from-red-500 to-pink-500',
+              'from-violet-500 to-purple-500'
+            ];
+            return (
+              <div
+                key={category.name}
+                className="group cursor-pointer"
+              >
+                <div className={`bg-gradient-to-br ${colors[index % colors.length]} p-4 rounded-2xl shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 text-center text-white h-36 flex flex-col items-center justify-center`}>
+                  <span className="text-3xl mb-2">{category.icon}</span>
+                  <h3 className="font-semibold text-xs mb-1 line-clamp-2 leading-tight px-1">{category.name}</h3>
+                  <p className="text-xs opacity-80">{category.count} SP</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -465,9 +518,9 @@ const BurgaHomepage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
+          {featuredProducts.map((product: any) => (
             <div
-              key={product.id}
+              key={product.product_id || product.id}
               className="bg-white rounded-xl shadow-sm hover:shadow-lg transition group cursor-pointer overflow-hidden"
             >
               <div className="relative overflow-hidden">
@@ -477,26 +530,26 @@ const BurgaHomepage: React.FC = () => {
                   </span>
                 )}
                 <img
-                  src={product.image}
-                  alt={product.name}
+                  src={product.image || product.image_url || 'https://via.placeholder.com/400'}
+                  alt={product.name || product.product_name}
                   className="w-full h-64 object-cover group-hover:scale-110 transition duration-300"
                 />
-                <button className="absolute bottom-3 right-3 bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition" onClick={() => toggleWishlist(product.id)}>
-                  <Heart className={`w-5 h-5 ${wishedProducts.has(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                <button className="absolute bottom-3 right-3 bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition" onClick={() => toggleWishlist(product.product_id || product.id)}>
+                  <Heart className={`w-5 h-5 ${wishedProducts.has(product.product_id || product.id) ? 'fill-red-500 text-red-500' : ''}`} />
                 </button>
               </div>
               
               <div className="p-4">
-                <h3 className="font-semibold mb-2">{product.name}</h3>
+                <h3 className="font-semibold mb-2">{product.name || product.product_name}</h3>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm ml-1">{product.rating}</span>
+                    <span className="text-sm ml-1">{product.rating || product.rating_average || 4.5}</span>
                   </div>
-                  <span className="text-sm text-gray-500">({product.reviews})</span>
+                  <span className="text-sm text-gray-500">({product.reviews || product.review_count || 0})</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold">${product.price}</span>
+                  <span className="text-xl font-bold">{(product.price || 0).toLocaleString('vi-VN')}₫</span>
                   <button 
                     onClick={() => addToCart(product)}
                     className="bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-700 transition"
@@ -513,7 +566,7 @@ const BurgaHomepage: React.FC = () => {
       {/* Promo Banner */}
       <div className="bg-gradient-to-r from-orange-500 to-pink-500 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Tham Gia Nhóm BURGA</h2>
+          <h2 className="text-4xl font-bold mb-4">Tham Gia Nhóm GoatTech</h2>
           <p className="text-xl mb-8">Nhận 15% giảm giá cho đơn hàng đầu tiên + ưu đãi độc quyền</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
             <input
@@ -543,7 +596,7 @@ const BurgaHomepage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">BURGA</h3>
+              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
               <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
             </div>
             <div>
@@ -575,7 +628,7 @@ const BurgaHomepage: React.FC = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 BURGA - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
+            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
           </div>
         </div>
       </footer>
@@ -583,4 +636,4 @@ const BurgaHomepage: React.FC = () => {
   );
 };
 
-export default BurgaHomepage;
+export default GoatTechHomepage;

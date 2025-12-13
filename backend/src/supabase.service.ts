@@ -8,24 +8,24 @@ export class SupabaseService {
     process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   );
 
-  // ============ CUSTOMERS ============
+  // ============ USERS ============
   async getCustomers() {
-    const { data, error } = await this.supabase.from('customers').select('*');
+    const { data, error } = await this.supabase.from('users').select('*');
     return { data, error };
   }
 
-  async getCustomerById(customerId: number) {
+  async getCustomerById(customerId: string) {
     const { data, error } = await this.supabase
-      .from('customers')
+      .from('users')
       .select('*')
-      .eq('customer_id', customerId)
+      .eq('id', customerId)
       .single();
     return { data, error };
   }
 
   async createCustomer(customerData: any) {
     const { data, error } = await this.supabase
-      .from('customers')
+      .from('users')
       .insert([customerData])
       .select();
     return { data, error };
@@ -33,7 +33,7 @@ export class SupabaseService {
 
   async getCustomerByEmail(email: string) {
     const { data, error } = await this.supabase
-      .from('customers')
+      .from('users')
       .select('*')
       .eq('email', email)
       .single();
@@ -42,7 +42,7 @@ export class SupabaseService {
 
   async loginCustomer(email: string, password: string) {
     const { data, error } = await this.supabase
-      .from('customers')
+      .from('users')
       .select('*')
       .eq('email', email)
       .eq('password_hash', password)
@@ -85,12 +85,64 @@ export class SupabaseService {
     return { data, error };
   }
 
+  async createProduct(productData: any) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .insert([productData])
+      .select();
+    return { data, error };
+  }
+
+  async updateProduct(productId: number, productData: any) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .update(productData)
+      .eq('product_id', productId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteProduct(productId: number) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .delete()
+      .eq('product_id', productId);
+    return { data, error };
+  }
+
   async getProductsByCategory(categoryId: number) {
     const { data, error } = await this.supabase
       .from('products')
       .select('*')
       .eq('category_id', categoryId);
     return { data, error };
+  }
+
+  // ============ PRODUCTS BY SEASON ============
+  async getProductsBySeason(season: string) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*')
+      .eq('season', season)
+      .eq('status', 'active');
+    return { data, error };
+  }
+
+  async getSeasonProductCounts() {
+    const seasons = ['noel', 'valentine', 'tet'];
+    const counts: Record<string, number> = {};
+    
+    for (const season of seasons) {
+      const { data, error } = await this.supabase
+        .from('products')
+        .select('product_id', { count: 'exact' })
+        .eq('season', season)
+        .eq('status', 'active');
+      
+      counts[season] = data?.length || 0;
+    }
+    
+    return counts;
   }
 
   // ============ ORDERS ============
@@ -209,6 +261,44 @@ export class SupabaseService {
     return { data, error };
   }
 
+  async getCategoriesWithProductCount() {
+    // Lấy tất cả categories
+    const { data: categories, error: catError } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (catError) return { data: null, error: catError };
+
+    // Lấy tất cả sản phẩm (không lọc status để đếm hết)
+    const { data: products, error: prodError } = await this.supabase
+      .from('products')
+      .select('category_id, status');
+
+    if (prodError) return { data: categories, error: prodError };
+
+    // Đếm số sản phẩm theo category_id (chấp nhận status: active, Active, hoặc không có status)
+    const productCountMap: Record<number, number> = {};
+    products?.forEach((p: any) => {
+      if (p.category_id) {
+        const status = (p.status || '').toLowerCase();
+        // Đếm nếu status là active hoặc không có status
+        if (status === 'active' || status === '' || !p.status) {
+          productCountMap[p.category_id] = (productCountMap[p.category_id] || 0) + 1;
+        }
+      }
+    });
+
+    // Gắn số lượng sản phẩm vào từng category
+    const categoriesWithCount = categories?.map((cat: any) => ({
+      ...cat,
+      product_count: productCountMap[cat.category_id] || 0
+    }));
+
+    return { data: categoriesWithCount, error: null };
+  }
+
   async getCategoryById(categoryId: number) {
     const { data, error } = await this.supabase
       .from('categories')
@@ -248,13 +338,57 @@ export class SupabaseService {
     return { data, error };
   }
 
+  async createCategory(categoryData: any) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .insert([categoryData])
+      .select();
+    return { data, error };
+  }
+
+  async updateCategory(categoryId: number, categoryData: any) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .update(categoryData)
+      .eq('category_id', categoryId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteCategory(categoryId: number) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .delete()
+      .eq('category_id', categoryId);
+    return { data, error };
+  }
+
   // ============ REVIEWS ============
+  async getAllReviews(limit = 50) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return { data, error };
+  }
+
   async getProductReviews(productId: number) {
     const { data, error } = await this.supabase
       .from('product_reviews')
       .select('*')
       .eq('product_id', productId)
-      .eq('is_approved', true);
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  }
+
+  async getReviewById(reviewId: number) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .select('*')
+      .eq('review_id', reviewId)
+      .single();
     return { data, error };
   }
 
@@ -262,6 +396,32 @@ export class SupabaseService {
     const { data, error } = await this.supabase
       .from('product_reviews')
       .insert([reviewData])
+      .select();
+    return { data, error };
+  }
+
+  async updateReview(reviewId: number, reviewData: any) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .update(reviewData)
+      .eq('review_id', reviewId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteReview(reviewId: number) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .delete()
+      .eq('review_id', reviewId);
+    return { data, error };
+  }
+
+  async approveReview(reviewId: number, isApproved: boolean) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .update({ is_approved: isApproved })
+      .eq('review_id', reviewId)
       .select();
     return { data, error };
   }
@@ -318,6 +478,50 @@ export class SupabaseService {
     }
 
     const { data, error } = await query;
+    return { data, error };
+  }
+
+  // ============ CONTACT MESSAGES ============
+  async getAllContactMessages(limit = 50) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return { data, error };
+  }
+
+  async getContactMessageById(id: number) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .select('*')
+      .eq('id', id)
+      .single();
+    return { data, error };
+  }
+
+  async createContactMessage(messageData: any) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .insert([messageData])
+      .select();
+    return { data, error };
+  }
+
+  async updateContactMessageStatus(id: number, status: string) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+    return { data, error };
+  }
+
+  async deleteContactMessage(id: number) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .delete()
+      .eq('id', id);
     return { data, error };
   }
 }
