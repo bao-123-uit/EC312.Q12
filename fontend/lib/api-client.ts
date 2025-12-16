@@ -1,3 +1,4 @@
+
 // ============ ADMIN DASHBOARD ============
 export const fetchAdminDashboard = async () => {
   const response = await apiClient.get('/admin/dashboard');
@@ -309,4 +310,62 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+// ============ SHOPPING_CART ============
+// GET: lấy giỏ hàng theo customer
+export const fetchShoppingCart = async (customerId: number) => {
+  const response = await apiClient.get(
+    `/shopping-cart/customer/${customerId}`,
+  );
+  return response.data;
+};
 
+// POST: thêm sản phẩm vào giỏ
+export const addToShoppingCart = async (data: {
+  customer_id: string;
+  product_id: number;
+  variant_id?: number | null;
+  quantity?: number;
+}) => {
+  const response = await apiClient.post('/shopping-cart', {
+    customer_id: data.customer_id,
+    product_id: data.product_id,
+    variant_id: data.variant_id ?? null,
+    quantity: data.quantity ?? 1,
+  });
+  return response.data;
+};
+
+// PUT: cập nhật số lượng
+export const updateShoppingCart = async (
+  cartId: number,
+  quantity: number,
+) => {
+  const response = await apiClient.put(
+    `/shopping-cart/${cartId}`,
+    { quantity },
+  );
+  return response.data;
+};
+
+// DELETE: xóa sản phẩm khỏi giỏ
+export const deleteShoppingCart = async (cartId: number) => {
+  const response = await apiClient.delete(
+    `/shopping-cart/${cartId}`,
+  );
+  return response.data;
+};
+import { createBrowserClient } from '@supabase/ssr';
+const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
+
+client.interceptors.request.use(async (config) => {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default client;

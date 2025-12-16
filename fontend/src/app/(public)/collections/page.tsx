@@ -329,58 +329,7 @@ const CollectionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                <Menu className="w-6 h-6" />
-              </button>
-              <button className="lg:hidden">
-                <Search className="w-6 h-6" />
-              </button>
-            </div>
-
-            <Link href="/" className="text-2xl font-bold tracking-wider bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              GoatTech
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <button className="relative">
-                <Heart className="w-6 h-6" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-
-              <Link href="/account">
-                <User className="w-6 h-6" />
-              </Link>
-
-              <button className="relative">
-                <ShoppingCart className="w-6 h-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
-            <Link href="/shop" className="text-sm font-medium hover:text-pink-600 transition">Cửa Hàng</Link>
-            <Link href="/collections" className="text-sm font-medium text-pink-600 border-b-2 border-pink-600 pb-1">Bộ Sưu Tập</Link>
-            <Link href="/about" className="text-sm font-medium hover:text-pink-600 transition">Về Chúng Tôi</Link>
-            <Link href="/contact" className="text-sm font-medium hover:text-pink-600 transition">Liên Hệ</Link>
-            <Link href="/promotions" className="text-sm font-medium text-red-600 hover:text-red-700 transition">Khuyến Mại</Link>
-          </nav>
-        </div>
-      </header>
+      
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -514,7 +463,7 @@ const CollectionsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Products from Collections */}
+      {/* Featured Products from Collections
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Sản Phẩm Nổi Bật Từ Bộ Sưu Tập</h2>
@@ -586,7 +535,7 @@ const CollectionsPage: React.FC = () => {
             Xem Tất Cả Sản Phẩm <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
-      </section>
+      </section> */}
 
       {/* Newsletter Section */}
       <section className="relative overflow-hidden">
@@ -613,45 +562,6 @@ const CollectionsPage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">GoatTech</h3>
-              <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Cửa Hàng</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/shop" className="hover:text-white transition">Tất Cả Sản Phẩm</Link></li>
-                <li><Link href="/collections" className="hover:text-white transition">Bộ Sưu Tập</Link></li>
-                <li><Link href="/promotions" className="hover:text-white transition">Khuyến Mại</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Hỗ Trợ</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/contact" className="hover:text-white transition">Liên Hệ</Link></li>
-                <li><button className="hover:text-white transition">Chính Sách Đổi Trả</button></li>
-                <li><button className="hover:text-white transition">FAQ</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Theo Dõi</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><button className="hover:text-white transition">Instagram</button></li>
-                <li><button className="hover:text-white transition">Facebook</button></li>
-                <li><button className="hover:text-white transition">TikTok</button></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 GoatTech - Bộ Sưu Tập Độc Quyền. Bảo Lưu Mọi Quyền.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

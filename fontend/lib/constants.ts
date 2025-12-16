@@ -3,10 +3,10 @@ export const PRODUCT_CATEGORIES = [
   { name: 'Ốp lưng', icon: '📱', count: 120 },
   { name: 'Cường lực màn hình', icon: '🛡️', count: 95 },
   { name: 'Miếng dán camera', icon: '📷', count: 85 },
-  { name: 'Cáp sạc', icon: '⚡', count: 60 },
-  { name: 'Tai nghe', icon: '🎧', count: 40 },
-  { name: 'Dây đeo điện thoại', icon: '🔗', count: 60 },
-  { name: 'Sticker trang trí', icon: '✨', count: 40 }
+  // { name: 'Cáp sạc', icon: '⚡', count: 60 },
+  // { name: 'Tai nghe', icon: '🎧', count: 40 },
+  // { name: 'Dây đeo điện thoại', icon: '🔗', count: 60 },
+  // { name: 'Sticker trang trí', icon: '✨', count: 40 }
 ];
 
 // Danh mục cho trang Shop (có thêm "Tất Cả")

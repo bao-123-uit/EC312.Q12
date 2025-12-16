@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Menu, ShoppingCart, User, Heart, ChevronDown, Star, Filter, X } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts, createMomoPayment } from '@/lib/api-client';
+import { fetchProducts, createMomoPayment,addToShoppingCart } from '@/lib/api-client';
 import { SHOP_CATEGORIES } from '@/lib/constants';
+import { useCart } from '@/app/context/cart-context';
+// import { useAuth } from '@/app/context/auth-context';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+
 
 interface Product {
   id: number;
@@ -32,29 +37,35 @@ const ShopPage: React.FC = () => {
   const [wishedProducts, setWishedProducts] = useState<Set<number>>(new Set());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('Tất Cả');
   const [sortBy, setSortBy] = useState('newest');
-  const [priceRange, setPriceRange] = useState([0, 500]);
+  const [priceRange, setPriceRange] = useState([0, 9999999]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-
+  const { refreshCart } = useCart();
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
   // Fetch products from backend
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const data = await fetchProducts(12); // Fetch 12 products
+        const data = await fetchProducts(10000); // Fetch 12 products
+        console.log('RAW API RESPONSE:', data);
         // Map database format to component format
         const mappedProducts = data.map((p: any, index: number) => ({
           id: p.product_id || p.id || index + 1,
           name: p.product_name || p.name || 'Sản phẩm',
           price: p.price || 0,
-          image: p.image_url || p.image || 'https://images.unsplash.com/photo-1565849904461-04a3cc76e3a9?w=400&h=400&fit=crop',
+          image: p.image_url || p.image || 'https://i.pinimg.com/1200x/f4/0a/de/f40ade8f15c8354c5eb584af2b1ebd82.jpg',
           rating: p.rating || 4.5,
           reviews: p.reviews || 0,
           tag: p.is_new ? 'MỚI' : (p.is_featured ? 'NỔI BẬT' : p.tag),
-          category: p.category || 'Ốp lưng'
+          // category: p.category || 'Tất Cả',
+          category : p.category_id >= 1 && p.category_id <= 5 ? 'Ốp lưng' 
+          : p.category_id >= 6 && p.category_id <= 8 ? 'Cường lực màn hình'
+                : 'Tất Cả',
         }));
         setProducts(mappedProducts);
       } catch (error) {
@@ -93,8 +104,14 @@ const ShopPage: React.FC = () => {
   const categories = SHOP_CATEGORIES;
 
   const filteredProducts = products
-    .filter(product => selectedCategory === 'Tất Cả' || product.category === selectedCategory)
-    .filter(product => product.price >= priceRange[0] && product.price <= priceRange[1])
+    .filter(product =>
+      selectedCategory === 'Tất Cả' ||
+      product.category === selectedCategory
+    )
+    .filter(product =>
+      product.price >= priceRange[0] &&
+      product.price <= priceRange[1]
+    )
     .sort((a, b) => {
       if (sortBy === 'newest') return b.id - a.id;
       if (sortBy === 'price-low') return a.price - b.price;
@@ -103,17 +120,47 @@ const ShopPage: React.FC = () => {
       return 0;
     });
 
-  const addToCart = (product: Product) => {
+  const addToCart = async (product: Product) => {
+    
+    if (!isAuthenticated || !user) {
+      alert('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      router.push('/login');
+      return;
+    }
+  // 1. Update UI (frontend)
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      const existing = prevItems.find(i => i.id === product.id);
+
+      let newCart;
+      if (existing) {
+        newCart = prevItems.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
+      } else {
+        newCart = [...prevItems, { ...product, quantity: 1 }];
       }
-      return [...prevItems, { ...product, quantity: 1 }];
+
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
     });
+    if (!user?.id) {
+      alert('Không tìm thấy thông tin người dùng');
+      console.log("không tìm thấy ");
+      return;
+    }
+    // 2. Call backend API
+    await addToShoppingCart({
+      customer_id: user.id,
+      product_id: product.id,
+      quantity: 1,
+    });
+
+    refreshCart();
   };
+
+
 
   const removeFromCart = (productId: number) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
@@ -268,64 +315,8 @@ const ShopPage: React.FC = () => {
       )}
 
       {/* Top Banner */}
-      <div className="bg-black text-white py-2 px-4 text-center text-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
-          <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
-          <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
-        </div>
-      </div>
 
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                <Menu className="w-6 h-6" />
-              </button>
-              <button className="lg:hidden">
-                <Search className="w-6 h-6" />
-              </button>
-            </div>
-
-            <Link href="/" className="text-2xl font-bold tracking-wider">
-              GoatTech
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <button className="relative" onClick={() => toggleWishlist(0)}>
-                <Heart className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                  {wishlistCount}
-                </span>
-              </button>
-
-              <button onClick={() => window.location.href = '/account'}>
-                <User className="w-6 h-6" />
-              </button>
-
-              <button className="relative" onClick={() => setIsCartOpen(true)}>
-                <ShoppingCart className="w-6 h-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
-            <Link href="/" className="text-sm font-medium hover:text-pink-600">Trang Chủ</Link>
-            <button className="text-sm font-medium hover:text-pink-600">Cửa Hàng</button>
-            <button className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button>
-            <button className="text-sm font-medium hover:text-pink-600">Về Chúng Tôi</button>
-            <button className="text-sm font-medium text-red-600">Khuyến Mại</button>
-          </nav>
-        </div>
-      </header>
 
       {/* Breadcrumb */}
       <div className="bg-white border-b">
@@ -339,12 +330,6 @@ const ShopPage: React.FC = () => {
       </div>
 
       {/* Shop Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold mb-2">Mua Ốp Điện Thoại</h1>
-          <p className="text-gray-600">Khám phá bộ sưu tập ốp điện thoại cao cấp và phụ kiện công nghệ đầy đủ</p>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -366,10 +351,10 @@ const ShopPage: React.FC = () => {
                   {categories.map(category => (
                     <label key={category.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition">
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="category"
                         checked={selectedCategory === category.name}
                         onChange={() => setSelectedCategory(category.name)}
-                        className="w-4 h-4 rounded accent-pink-600"
                       />
                       <span className="text-lg">{category.icon}</span>
                       <span className="text-sm">{category.name}</span>
@@ -503,7 +488,7 @@ const ShopPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedCategory('Tất Cả');
-                    setPriceRange([0, 500]);
+                    setPriceRange([0, 10000000]);
                   }}
                   className="text-pink-600 font-medium hover:underline"
                 >
@@ -516,46 +501,6 @@ const ShopPage: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
-              <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Cửa Hàng</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/shop" className="hover:text-white text-left block">Ốp iPhone</Link></li>
-                <li><Link href="/shop" className="hover:text-white text-left block">Phụ Kiện</Link></li>
-                <li><Link href="/shop" className="hover:text-white text-left block">Hàng Mới Về</Link></li>
-                <li><Link href="/promotions" className="hover:text-white text-left block">Khuyến Mại</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Hỗ Trợ</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/contact" className="hover:text-white text-left block">Liên Hệ Chúng Tôi</Link></li>
-                <li><button className="hover:text-white text-left">Thông Tin Vận Chuyển</button></li>
-                <li><button className="hover:text-white text-left">Chính Sách Hoàn Hàng</button></li>
-                <li><button className="hover:text-white text-left">Câu Hỏi Thường Gặp</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Theo Dõi Chúng Tôi</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><button className="hover:text-white text-left">Instagram</button></li>
-                <li><button className="hover:text-white text-left">Facebook</button></li>
-                <li><button className="hover:text-white text-left">TikTok</button></li>
-                <li><button className="hover:text-white text-left">YouTube</button></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

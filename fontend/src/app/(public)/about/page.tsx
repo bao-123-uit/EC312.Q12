@@ -133,72 +133,7 @@ const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <button className="lg:hidden">
-                <Menu className="w-6 h-6" />
-              </button>
-              <button className="lg:hidden">
-                <Search className="w-6 h-6" />
-              </button>
-            </div>
-
-            <Link href="/" className="text-2xl font-bold tracking-wider">
-              GoatTech
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <button className="hidden lg:block px-4 py-2 text-sm font-medium border rounded-lg" onClick={() => setIsCurrencyModalOpen(true)}>
-                🌍 {selectedCurrency} {selectedCurrency === 'USD' ? '$' : '₫'}
-              </button>
-
-              <select 
-                value={selectedDevice}
-                onChange={(e) => setSelectedDevice(e.target.value)}
-                className="hidden lg:block px-4 py-2 border rounded-lg text-sm"
-              >
-                {devices.map((device) => (
-                  <option key={device} value={device}>{device}</option>
-                ))}
-              </select>
-
-              <button className="relative">
-                <Heart className="w-6 h-6" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-
-              <Link href="/account">
-                <User className="w-6 h-6" />
-              </Link>
-
-              <button className="relative">
-                <ShoppingCart className="w-6 h-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
-            <Link href="/" className="text-sm font-medium hover:text-pink-600">Trang Chủ</Link>
-            <Link href="/shop" className="text-sm font-medium hover:text-pink-600">Cửa Hàng</Link>
-            <button className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button>
-            <Link href="/about" className="text-sm font-medium text-pink-600">Về Chúng Tôi</Link>
-            <button className="text-sm font-medium text-red-600">Khuyến Mại</button>
-          </nav>
-        </div>
-      </header>
+     
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-20">

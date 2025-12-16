@@ -524,4 +524,94 @@ export class SupabaseService {
       .eq('id', id);
     return { data, error };
   }
+    // ============ SHOPPING CART ============
+  // async createProduct(productData: any) {
+  //   const { data, error } = await this.supabase
+  //     .from('products')
+  //     .insert([productData])
+  //     .select();
+  //   return { data, error };
+  // }
+  // CREATE: thêm sản phẩm vào giỏ
+  async createShoppingCart(cartData: any) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .insert([cartData])
+      .select();
+      // .single();
+
+    return { data, error };
+  }
+
+  // READ: lấy giỏ hàng theo customer
+  // async getShoppingCart(customerId: number) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('customer_id', customerId)
+  //     .order('created_at', { ascending: false });
+
+  //   return { data, error };
+  // }
+
+  // UPDATE: cập nhật số lượng
+  async updateShoppingCart(
+    cartId: number,
+    quantity: number,
+  ) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .update({
+        quantity,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('cart_id', cartId)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  // DELETE: xóa sản phẩm khỏi giỏ
+  async deleteShoppingCart(cartId: number) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .delete()
+      .eq('cart_id', cartId);
+
+    return { data, error };
+  }
+  async getCartItemByUserAndProduct(
+    userId: string,
+    productId: number,
+  ) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .select('*')
+      .eq('customer_id', userId)
+      .eq('product_id', productId)
+      .single();
+
+    return { data, error };
+  }
+  async getCartItemById(cartId: string) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .select('*')
+      .eq('cart_id', cartId)
+      .single();
+
+    return { data, error };
+  }
+  async getShoppingCart(customerId: string) {
+    const { data, error } = await this.supabase
+      .from('shopping_carts')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+
+    return { data, error };
+  }
+
+
 }

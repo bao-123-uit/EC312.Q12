@@ -1,47 +1,120 @@
+// backend/src/order/order.service.ts
+
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../supabase.service';
+
+interface CreateOrderItem {
+  product_id: number;
+  quantity: number;
+  price: number;
+}
 
 @Injectable()
 export class OrderService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  async getOrders(limit = 20) {
-    const result = await this.supabaseService.getOrders(limit);
-    return result.data || [];
+  /**
+   * ADMIN: Lấy tất cả orders
+   */
+  async getAllOrders() {
+    const { data, error } = await this.supabaseService.getOrders();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
-  async getOrderById(orderId: number) {
-    const result = await this.supabaseService.getOrderById(orderId);
-    return result.data || null;
+  /**
+   * CUSTOMER: Lấy orders theo userId (UUID)
+   */
+  async getOrdersByUserId(userId: string) {
+    const { data, error } =
+      await this.supabaseService.getOrdersByCustomer(userId as any);
+    if (error) throw new Error(error.message);
+    return data;
   }
 
-  async getOrdersByCustomer(customerId: number) {
-    const result = await this.supabaseService.getOrdersByCustomer(customerId);
-    return result.data || [];
+  /**
+   * Lấy chi tiết 1 order
+   */
+  async getOrderById(orderId: string) {
+    const { data, error } =
+      await this.supabaseService.getOrderById(Number(orderId));
+    if (error) throw new Error(error.message);
+    return data;
   }
 
-  async createOrder(orderData: any) {
-    // orderData cần có: customer_id, address, products, note, ...
-    const result = await this.supabaseService.createOrder(orderData);
-    if (result.error) {
-      return { success: false, message: result.error.message };
+  /**
+   * CUSTOMER: Tạo order mới
+   */
+  async createOrder(
+    userId: string,
+    items: CreateOrderItem[],
+    shippingAddress: string,
+  ) {
+    // 1️⃣ Tạo order
+    const orderPayload = {
+      customer_id: userId,
+      shipping_address: shippingAddress,
+      order_status: 'pending',
+      payment_status: 'unpaid',
+      created_at: new Date().toISOString(),
+    };
+
+    const { data: order, error } =
+      await this.supabaseService.createOrder(orderPayload);
+
+    if (error || !order || order.length === 0) {
+      throw new Error(error?.message || 'Không tạo được order');
     }
-    return { success: true, data: result.data };
+
+    const orderId = order[0].order_id;
+
+    // 2️⃣ Tạo order_items
+    for (const item of items) {
+      await this.supabaseService.createOrderItem({
+        order_id: orderId,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.price,
+      });
+    }
+
+    return {
+      success: true,
+      order_id: orderId,
+    };
   }
 
-  async updateOrderStatus(orderId: number, newStatus: string) {
-    const result = await this.supabaseService.updateOrderStatus(orderId, newStatus);
-    if (result.error) {
-      return { success: false, message: result.error.message };
+  /**
+   * ADMIN: Cập nhật trạng thái đơn hàng
+   */
+  async updateOrderStatus(orderId: string, newStatus: string) {
+    const { data, error } =
+      await this.supabaseService.updateOrderStatus(
+        Number(orderId),
+        newStatus,
+      );
+
+    if (error) {
+      return { success: false, message: error.message };
     }
-    return { success: true, data: result.data };
+
+    return { success: true, data };
   }
 
-  async updatePaymentStatus(orderId: number, paymentStatus: string) {
-    const result = await this.supabaseService.updatePaymentStatus(orderId, paymentStatus);
-    if (result.error) {
-      return { success: false, message: result.error.message };
+  /**
+   * ADMIN / PAYMENT: Cập nhật trạng thái thanh toán
+   */
+  async updatePaymentStatus(orderId: string, paymentStatus: string) {
+    const { data, error } =
+      await this.supabaseService.updatePaymentStatus(
+        Number(orderId),
+        paymentStatus,
+      );
+
+    if (error) {
+      return { success: false, message: error.message };
     }
-    return { success: true, data: result.data };
+
+    return { success: true, data };
   }
 }
