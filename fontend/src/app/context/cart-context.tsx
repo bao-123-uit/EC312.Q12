@@ -18,7 +18,7 @@ const CartContext = createContext<CartContextType>({
   refreshCart: () => {},
 });
 
-const CUSTOMER_ID = 10;
+// const CUSTOMER_ID = 10;
 
 export const CartProvider = ({
   children,
@@ -29,7 +29,7 @@ export const CartProvider = ({
 
   const refreshCart = async () => {
     try {
-      const result = await fetchShoppingCart(CUSTOMER_ID);
+      const result = await fetchShoppingCart();
       if (result.success) {
         const total = result.data.reduce(
           (sum: number, item: any) => sum + item.quantity,

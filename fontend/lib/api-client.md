@@ -112,6 +112,22 @@ export const deleteCategory = async (id: number) => {
 };
 
 // ============ AUTHENTICATION ============
+// export const registerCustomer = async (customerData: {
+//   email: string;
+//   password: string;
+//   full_name: string;
+//   phone_number?: string;
+//   address?: string;
+// }) => {
+//   const response = await apiClient.post('/auth/register', customerData);
+//   return response.data;
+// };
+
+// export const loginCustomer = async (email: string, password: string) => {
+//   const response = await apiClient.post('/auth/login', { email, password });
+//   return response.data;
+// };
+// ============ AUTHENTICATION ============
 
 export const registerCustomer = async (customerData: {
   email: string;
@@ -364,17 +380,57 @@ apiClient.interceptors.response.use(
   },
 );
 // ============ SHOPPING_CART ============
+// GET: lấy giỏ hàng theo customer
+// export const fetchShoppingCart = async (customerId: number) => {
+//   const response = await apiClient.get(
+//     `/shopping-cart/customer/${customerId}`,
+//   );
+//   return response.data;
+// };
+
+// // POST: thêm sản phẩm vào giỏ
+// export const addToShoppingCart = async (data: {
+//   customer_id: string;
+//   product_id: number;
+//   variant_id?: number | null;
+//   quantity?: number;
+// }) => {
+//   const response = await apiClient.post('/shopping-cart', {
+//     customer_id: data.customer_id,
+//     product_id: data.product_id,
+//     variant_id: data.variant_id ?? null,
+//     quantity: data.quantity ?? 1,
+//   });
+//   return response.data;
+// };
+
+// // PUT: cập nhật số lượng
+// export const updateShoppingCart = async (
+//   cartId: number,
+//   quantity: number,
+// ) => {
+//   const response = await apiClient.put(
+//     `/shopping-cart/${cartId}`,
+//     { quantity },
+//   );
+//   return response.data;
+// };
+
+// // DELETE: xóa sản phẩm khỏi giỏ
+// export const deleteShoppingCart = async (cartId: number) => {
+//   const response = await apiClient.delete(
+//     `/shopping-cart/${cartId}`,
+//   );
+//   return response.data;
+// };
 /**
  * Lấy giỏ hàng của user hiện tại
  * Yêu cầu: Phải đăng nhập (có token)
  */
 export const fetchShoppingCart = async () => {
   try {
-    console.log('console log đang được gọi từ fetchShoppingCart');
     // Lấy token từ localStorage
     const customerData = localStorage.getItem('customer');
-    console.log(customerData);
-    console.log(getAuthHeaders());
     if (!customerData) {
       return { success: false, message: 'Chưa đăng nhập', data: [] };
     }
@@ -398,8 +454,7 @@ export const fetchShoppingCart = async () => {
  */
 export const addToShoppingCart = async (data: {
   productId: number;
-  // quantity: number;
-  quantity:1 ;
+  quantity?: number;
   variantId?: number;
 }) => {
   try {
@@ -407,8 +462,7 @@ export const addToShoppingCart = async (data: {
       '/shopping-cart',
       {
         productId: data.productId,
-        // quantity: data.quantity || 1,
-        quantity: 1,
+        quantity: data.quantity || 1,
         variantId: data.variantId || null,
       },
       {
@@ -489,12 +543,10 @@ export const clearShoppingCart = async () => {
 const getAuthHeaders = () => {
   const customerData = localStorage.getItem('customer');
   if (!customerData) return {};
-  console.log('🔍 getAuthHeaders called');
-  console.log('📦 customerData raw:', customerData);
+
   try {
     const customer = JSON.parse(customerData);
     // Nếu có access_token thì dùng, không thì dùng id như là simple auth
-    console.log('✅ Using Authorization Bearer token',customer.access_token);
     if (customer.access_token) {
       return { Authorization: `Bearer ${customer.access_token}` };
     }

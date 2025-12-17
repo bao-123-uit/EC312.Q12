@@ -533,18 +533,77 @@ export class SupabaseService {
   //   return { data, error };
   // }
   // CREATE: thêm sản phẩm vào giỏ
-  async createShoppingCart(cartData: any) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .insert([cartData])
-      .select();
-      // .single();
+  // async createShoppingCart(cartData: any) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .insert([cartData])
+  //     .select();
+  //     // .single();
 
-    return { data, error };
-  }
+  //   return { data, error };
+  // }
 
-  // READ: lấy giỏ hàng theo customer
-  // async getShoppingCart(customerId: number) {
+  // // READ: lấy giỏ hàng theo customer
+  // // async getShoppingCart(customerId: number) {
+  // //   const { data, error } = await this.supabase
+  // //     .from('shopping_carts')
+  // //     .select('*')
+  // //     .eq('customer_id', customerId)
+  // //     .order('created_at', { ascending: false });
+
+  // //   return { data, error };
+  // // }
+
+  // // UPDATE: cập nhật số lượng
+  // async updateShoppingCart(
+  //   cartId: number,
+  //   quantity: number,
+  // ) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .update({
+  //       quantity,
+  //       updated_at: new Date().toISOString(),
+  //     })
+  //     .eq('cart_id', cartId)
+  //     .select()
+  //     .single();
+
+  //   return { data, error };
+  // }
+
+  // // DELETE: xóa sản phẩm khỏi giỏ
+  // async deleteShoppingCart(cartId: number) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .delete()
+  //     .eq('cart_id', cartId);
+
+  //   return { data, error };
+  // }
+  // async getCartItemByUserAndProduct(
+  //   userId: string,
+  //   productId: number,
+  // ) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('customer_id', userId)
+  //     .eq('product_id', productId)
+  //     .single();
+
+  //   return { data, error };
+  // }
+  // async getCartItemById(cartId: string) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('cart_id', cartId)
+  //     .single();
+
+  //   return { data, error };
+  // }
+  // async getShoppingCart(customerId: string) {
   //   const { data, error } = await this.supabase
   //     .from('shopping_carts')
   //     .select('*')
@@ -553,65 +612,141 @@ export class SupabaseService {
 
   //   return { data, error };
   // }
+  // ============ SHOPPING CART (CẬP NHẬT) ============
 
-  // UPDATE: cập nhật số lượng
-  async updateShoppingCart(
-    cartId: number,
-    quantity: number,
-  ) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .update({
-        quantity,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('cart_id', cartId)
-      .select()
-      .single();
+/**
+ * Lấy giỏ hàng theo user_id (UUID) - JOIN với products
+ */
+async getShoppingCartByUserId(userId: string) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select(`
+      cart_id,
+      customer_id,
+      product_id,
+      variant_id,
+      quantity,
+      created_at,
+      updated_at,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price,
+        status
+      )
+    `)
+    .eq('customer_id', userId)
+    .order('created_at', { ascending: false });
 
-    return { data, error };
-  }
+  return { data, error };
+}
 
-  // DELETE: xóa sản phẩm khỏi giỏ
-  async deleteShoppingCart(cartId: number) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .delete()
-      .eq('cart_id', cartId);
+/**
+ * Kiểm tra sản phẩm đã có trong giỏ chưa
+ */
+async getCartItemByUserAndProduct(userId: string, productId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select('*')
+    .eq('customer_id', userId)
+    .eq('product_id', productId)
+    .maybeSingle();  // Dùng maybeSingle thay vì single để tránh lỗi khi không có data
 
-    return { data, error };
-  }
-  async getCartItemByUserAndProduct(
-    userId: string,
-    productId: number,
-  ) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .select('*')
-      .eq('customer_id', userId)
-      .eq('product_id', productId)
-      .single();
+  return { data, error };
+}
 
-    return { data, error };
-  }
-  async getCartItemById(cartId: string) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .select('*')
-      .eq('cart_id', cartId)
-      .single();
+/**
+ * Thêm sản phẩm vào giỏ
+ */
+/**
+ * Map từ users.id (UUID) sang customers.customer_id (INTEGER)
+ * Vì 2 bảng liên kết qua email
+ */
+async createShoppingCartItem(cartData: {
+  customer_id: string;  // UUID từ users.id
+  product_id: number;
+  variant_id?: number | null;
+  quantity: number;
+}) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .insert([{
+      customer_id: cartData.customer_id,  // ✅ UUID trực tiếp, không cần map
+      product_id: cartData.product_id,
+      variant_id: cartData.variant_id || null,
+      quantity: cartData.quantity,
+    }])
+    .select(`...`)
+    .single();
 
-    return { data, error };
-  }
-  async getShoppingCart(customerId: string) {
-    const { data, error } = await this.supabase
-      .from('shopping_carts')
-      .select('*')
-      .eq('customer_id', customerId)
-      .order('created_at', { ascending: false });
+  return { data, error };
+}
 
-    return { data, error };
-  }
+/**
+ * Cập nhật số lượng
+ */
+async updateShoppingCartQuantity(cartId: number, quantity: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .update({
+      quantity,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('cart_id', cartId)
+    .select(`
+      cart_id,
+      customer_id,
+      product_id,
+      quantity,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price
+      )
+    `)
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Xóa item khỏi giỏ
+ */
+async deleteShoppingCartItem(cartId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .delete()
+    .eq('cart_id', cartId);
+
+  return { data, error };
+}
+
+/**
+ * Xóa toàn bộ giỏ hàng của user
+ */
+async clearShoppingCart(userId: string) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .delete()
+    .eq('customer_id', userId);
+
+  return { data, error };
+}
+
+/**
+ * Lấy cart item theo ID (để verify ownership)
+ */
+async getCartItemById(cartId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select('*')
+    .eq('cart_id', cartId)
+    .single();
+
+  return { data, error };
+}
 
 
 }

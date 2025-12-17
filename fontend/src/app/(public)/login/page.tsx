@@ -1,25 +1,22 @@
-// File: fontend/src/app/login/page.tsx
-
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginCustomer } from '@/lib/api-client';
 import Link from 'next/link';
-import { Mail, Lock, AlertCircle, User, LogOut, Settings, ShoppingBag, Heart, Edit } from 'lucide-react';
-// import { useAuth } from '@/app/context/auth-context';
+import { Mail, Lock, AlertCircle, User, LogOut, Settings, ShoppingBag, Heart, Edit, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, isAuthenticated, login, logout, getDisplayName, loading } = useAuth();
-  
+  const { user, isAuthenticated, login, logout, getDisplayName, loading , is_admin } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -33,8 +30,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
+    // Validation
     if (!formData.email || !formData.password) {
       setError('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    if (!formData.email.includes('@')) {
+      setError('Email không hợp lệ');
       return;
     }
 
@@ -44,16 +47,24 @@ export default function LoginPage() {
       const result = await loginCustomer(formData.email, formData.password);
 
       if (result.success) {
-        const userData = result.customer || result.user;
+        const user = result.customer || result.user;
         
-        // Sử dụng AuthContext để login
-        login(userData);
+        // 🔧 SỬA: Lưu access_token vào cùng với user data
+        const customerData = {
+          ...user,
+          access_token: result.access_token,
+        };
+        
+        localStorage.setItem('customer', JSON.stringify(customerData));
         
         const isAdmin = result.role === 'admin' || 
-                        userData?.role === 'admin' || 
-                        userData?.email?.toLowerCase().includes('admin');
+                        user?.role === 'admin' || 
+                        user?.email?.toLowerCase().includes('admin');
         
         localStorage.setItem('userRole', isAdmin ? 'admin' : 'customer');
+        
+        // 🔧 SỬA: Dùng login() từ useAuth() thay vì setLoggedInUser
+        login(customerData);
         
         if (isAdmin) {
           router.push('/admin');
@@ -64,18 +75,18 @@ export default function LoginPage() {
         setError(result.message || 'Đăng nhập thất bại');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      console.error('Login error:', err);
+      setError('Có lỗi xảy ra, vui lòng thử lại');
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  // Hàm đăng xuất
   const handleLogout = () => {
     logout();
+    localStorage.removeItem('userRole');
   };
 
-  // Lấy role
   const getUserRole = () => {
     const role = localStorage.getItem('userRole');
     return role === 'admin' ? 'Quản trị viên' : 'Khách hàng';
@@ -97,7 +108,6 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          {/* Card thông tin tài khoản */}
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
             {/* Header với avatar */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-10 text-center">
@@ -107,9 +117,7 @@ export default function LoginPage() {
               <h2 className="mt-4 text-2xl font-bold text-white">
                 {getDisplayName()}
               </h2>
-              <p className="mt-1 text-blue-100">
-                {user.email}
-              </p>
+              <p className="mt-1 text-blue-100">{user.email}</p>
               <span className="inline-block mt-3 px-4 py-1 bg-white/20 rounded-full text-sm text-white">
                 {getUserRole()}
               </span>
@@ -154,25 +162,13 @@ export default function LoginPage() {
                     <span className="text-gray-600">Vai trò</span>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    user.role === 'admin' 
+                    user.role === 'admin' || user.is_admin
                       ? 'bg-purple-100 text-purple-700' 
                       : 'bg-green-100 text-green-700'
                   }`}>
                     {getUserRole()}
                   </span>
                 </div>
-
-                {user.created_at && (
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400">📅</span>
-                      <span className="text-gray-600">Ngày tham gia</span>
-                    </div>
-                    <span className="text-gray-900 font-medium">
-                      {new Date(user.created_at).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Action buttons */}
@@ -210,7 +206,7 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {user.role === 'admin' && (
+              {(user.role === 'admin' || user.is_admin) && (
                 <Link
                   href="/admin"
                   className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
@@ -259,6 +255,7 @@ export default function LoginPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -271,15 +268,17 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                   placeholder="example@email.com"
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
@@ -291,17 +290,30 @@ export default function LoginPage() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
               </div>
             </div>
           </div>
 
+          {/* Remember & Forgot */}
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <input
@@ -321,6 +333,7 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Submit Button */}
           <div>
             <button
               type="submit"

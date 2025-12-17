@@ -1,36 +1,185 @@
-// backend/src/shopping-cart/shopping-cart.service.ts
-
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { SupabaseService } from '../supabase.service';
 
 @Injectable()
 export class ShoppingCartService {
+  private readonly logger = new Logger(ShoppingCartService.name);
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   /**
-   * Lấy giỏ hàng theo userId (UUID)
+   * Lấy giỏ hàng của user (có JOIN products)
    */
-  private async getCustomerIdFromUserId(userId: string): Promise<number | null> {
-    // Cách 1: Nếu bảng users có cột customer_id
-    const { data: user, error } = await this.supabaseService.getCustomerById(userId);
-    
-    if (error || !user) {
-      return null;
+  async getCartByUserId(userId: string) {
+    this.logger.log(`Getting cart for user: ${userId}`);
+
+    const { data, error } = await this.supabaseService.getShoppingCartByUserId(userId);
+
+    if (error) {
+      this.logger.error(`Get cart error: ${error.message}`);
+      return { success: false, message: error.message, data: [] };
     }
-    
-    // Nếu user.customer_id tồn tại (liên kết với bảng customers)
-    if (user.customer_id) {
-      return user.customer_id;
-    }
-    
-    // Cách 2: Nếu bảng customers dùng email để map
-    const { data: customer } = await this.supabaseService.getCustomerByEmail(user.email);
-    return customer?.customer_id || null;
+
+    // Transform data để frontend dễ sử dụng
+    const cartItems = (data || []).map((item: any) => ({
+      cart_id: item.cart_id,
+      product_id: item.product_id,
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+      created_at: item.created_at,
+      // Flatten product info
+      product_name: item.products?.product_name || `Sản phẩm #${item.product_id}`,
+      price: item.products?.sale_price || item.products?.price || 0,
+      original_price: item.products?.price || 0,
+      image_url: item.products?.image_url || '/placeholder.png',
+      status: item.products?.status || 'active',
+    }));
+
+    return {
+      success: true,
+      data: cartItems,
+      total: cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0),
+      itemCount: cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
+    };
   }
 
-  async getCartByUserId(userId: string) {
-    const { data, error } =
-      await this.supabaseService.getShoppingCart(userId);
+  /**
+   * Thêm sản phẩm vào giỏ
+   */
+  async addToCart(userId: string, productId: number, quantity: number = 1, variantId?: number) {
+    this.logger.log(`Adding to cart: user=${userId}, product=${productId}, qty=${quantity}`);
+
+    if (quantity < 1) {
+      throw new BadRequestException('Số lượng phải >= 1');
+    }
+
+    // 1️⃣ Kiểm tra sản phẩm đã có trong giỏ chưa
+    const { data: existingItem, error: checkError } = 
+      await this.supabaseService.getCartItemByUserAndProduct(userId, productId);
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, không phải lỗi thực sự
+      this.logger.error(`Check existing error: ${checkError.message}`);
+      return { success: false, message: checkError.message };
+    }
+
+    // 2️⃣ Nếu đã tồn tại → cộng dồn quantity
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      const { data: updated, error: updateError } = 
+        await this.supabaseService.updateShoppingCartQuantity(existingItem.cart_id, newQuantity);
+
+      if (updateError) {
+        this.logger.error(`Update quantity error: ${updateError.message}`);
+        return { success: false, message: updateError.message };
+      }
+
+      this.logger.log(`Updated existing cart item: ${existingItem.cart_id}, new qty: ${newQuantity}`);
+
+      return {
+        success: true,
+        action: 'updated',
+        message: 'Đã cập nhật số lượng trong giỏ hàng',
+        data: updated,
+      };
+    }
+
+    // 3️⃣ Chưa tồn tại → insert mới
+    const { data: created, error: createError } = await this.supabaseService.createShoppingCartItem({
+      customer_id: userId,
+      product_id: productId,
+      variant_id: variantId || null,
+      quantity,
+    });
+
+    if (createError) {
+      this.logger.error(`Create cart item error: ${createError.message}`);
+      return { success: false, message: createError.message };
+    }
+
+    this.logger.log(`Created new cart item for product: ${productId}`);
+
+    return {
+      success: true,
+      action: 'created',
+      message: 'Đã thêm sản phẩm vào giỏ hàng',
+      data: created,
+    };
+  }
+
+  /**
+   * Cập nhật số lượng sản phẩm trong giỏ
+   */
+  async updateQuantity(userId: string, cartId: number, quantity: number) {
+    this.logger.log(`Updating quantity: cart=${cartId}, qty=${quantity}`);
+
+    // 1️⃣ Verify ownership
+    const { data: cartItem, error: getError } = await this.supabaseService.getCartItemById(cartId);
+
+    if (getError || !cartItem) {
+      throw new BadRequestException('Không tìm thấy item trong giỏ hàng');
+    }
+
+    if (cartItem.customer_id !== userId) {
+      throw new ForbiddenException('Bạn không có quyền sửa giỏ hàng này');
+    }
+
+    // 2️⃣ Nếu quantity = 0 → xóa item
+    if (quantity <= 0) {
+      return this.removeFromCart(userId, cartId);
+    }
+
+    // 3️⃣ Update quantity
+    const { data, error } = await this.supabaseService.updateShoppingCartQuantity(cartId, quantity);
+
+    if (error) {
+      this.logger.error(`Update error: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Đã cập nhật số lượng',
+      data,
+    };
+  }
+
+  /**
+   * Xóa sản phẩm khỏi giỏ
+   */
+  async removeFromCart(userId: string, cartId: number) {
+    this.logger.log(`Removing from cart: cart=${cartId}`);
+
+    // 1️⃣ Verify ownership
+    const { data: cartItem, error: getError } = await this.supabaseService.getCartItemById(cartId);
+
+    if (getError || !cartItem) {
+      throw new BadRequestException('Không tìm thấy item trong giỏ hàng');
+    }
+
+    if (cartItem.customer_id !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xóa item này');
+    }
+
+    // 2️⃣ Delete
+    const { error } = await this.supabaseService.deleteShoppingCartItem(cartId);
+
+    if (error) {
+      this.logger.error(`Delete error: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Đã xóa sản phẩm khỏi giỏ hàng',
+    };
+  }
+
+  /**
+   * Xóa toàn bộ giỏ hàng
+   */
+  async clearCart(userId: string) {
+    const { error } = await this.supabaseService.clearShoppingCart(userId);
 
     if (error) {
       return { success: false, message: error.message };
@@ -38,129 +187,7 @@ export class ShoppingCartService {
 
     return {
       success: true,
-      data: data || [],
-    };
-  }
-
-  /**
-   * Thêm sản phẩm vào giỏ
-   * - Nếu đã tồn tại → cộng quantity
-   * - Nếu chưa → insert mới
-   */
-  async addToCart(
-    userId: string,
-    productId: number,
-    quantity: number,
-  ) {
-    const customerId = await this.getCustomerIdFromUserId(userId);
-    // 1️⃣ Kiểm tra item đã tồn tại chưa
-    const existing =
-      await this.supabaseService.getCartItemByUserAndProduct(
-        userId,
-        productId,
-      );
-
-    if (existing.error) {
-      return { success: false, message: existing.error.message };
-    }
-
-    // 2️⃣ Nếu tồn tại → update quantity
-    if (existing.data) {
-      const updated =
-        await this.supabaseService.updateShoppingCart(
-          existing.data.cart_id,
-          existing.data.quantity + quantity,
-        );
-
-      if (updated.error) {
-        return { success: false, message: updated.error.message };
-      }
-
-      return {
-        success: true,
-        action: 'updated',
-        data: updated.data,
-      };
-    }
-
-    // 3️⃣ Nếu chưa tồn tại → insert
-    const created =
-      await this.supabaseService.createShoppingCart({
-        customer_id: customerId,
-        product_id: productId,
-        quantity,
-      });
-
-    if (created.error) {
-      return { success: false, message: created.error.message };
-    }
-
-    return {
-      success: true,
-      action: 'created',
-      data: created.data,
-    };
-  }
-
-  /**
-   * Cập nhật số lượng sản phẩm trong giỏ
-   * (chỉ owner mới được sửa)
-   */
-  async updateQuantity(
-    userId: string,
-    cartId: string,
-    quantity: number,
-  ) {
-    // 1️⃣ Check cart item có thuộc user không
-    const cart =
-      await this.supabaseService.getCartItemById(cartId);
-
-    if (!cart.data || cart.data.customer_id !== userId) {
-      throw new ForbiddenException('Không có quyền thao tác giỏ hàng này');
-    }
-
-    // 2️⃣ Update
-    const result =
-      await this.supabaseService.updateShoppingCart(
-        Number(cartId),
-        quantity,
-      );
-
-    if (result.error) {
-      return { success: false, message: result.error.message };
-    }
-
-    return {
-      success: true,
-      data: result.data,
-    };
-  }
-
-  /**
-   * Xóa sản phẩm khỏi giỏ
-   * (chỉ owner)
-   */
-  async removeFromCart(
-    userId: string,
-    cartId: string,
-  ) {
-    const cart =
-      await this.supabaseService.getCartItemById(cartId);
-
-    if (!cart.data || cart.data.customer_id !== userId) {
-      throw new ForbiddenException('Không có quyền xóa item này');
-    }
-
-    const result =
-      await this.supabaseService.deleteShoppingCart(Number(cartId));
-
-    if (result.error) {
-      return { success: false, message: result.error.message };
-    }
-
-    return {
-      success: true,
-      message: 'Đã xóa sản phẩm khỏi giỏ hàng',
+      message: 'Đã xóa toàn bộ giỏ hàng',
     };
   }
 }

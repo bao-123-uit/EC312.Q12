@@ -6,20 +6,31 @@ import {
   Delete,
   Body,
   Param,
-  UseGuards,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ShoppingCartService } from './shopping-cart.service';
-import { JwtAuthGuard, CustomerGuard } from '../auth/guards';
 import { CurrentUser, CustomerOnly } from '../auth/decorators';
-import { AuthenticatedUser } from '../common';
+
+// DTOs
+class AddToCartDto {
+  productId: number;
+  quantity?: number;
+  variantId?: number;
+}
+
+class UpdateQuantityDto {
+  quantity: number;
+}
 
 @Controller('shopping-cart')
 export class ShoppingCartController {
   constructor(private readonly cartService: ShoppingCartService) {}
 
   /**
-   * GET /cart - Lấy giỏ hàng của user
-   * Yêu cầu: Đăng nhập + Role CUSTOMER
+   * GET /shopping-cart - Lấy giỏ hàng của user hiện tại
+   * Yêu cầu: Đăng nhập với role CUSTOMER
    */
   @Get()
   @CustomerOnly()
@@ -28,43 +39,57 @@ export class ShoppingCartController {
   }
 
   /**
-   * POST /cart - Thêm sản phẩm vào giỏ
-   * Yêu cầu: Đăng nhập + Role CUSTOMER
+   * POST /shopping-cart - Thêm sản phẩm vào giỏ
+   * Body: { productId: number, quantity?: number, variantId?: number }
    */
   @Post()
   @CustomerOnly()
+  @HttpCode(HttpStatus.CREATED)
   async addToCart(
     @CurrentUser('id') userId: string,
-    @Body() body: { productId: number; quantity: number },
+    @Body() body: AddToCartDto,
   ) {
-    return this.cartService.addToCart(userId, body.productId, body.quantity);
+    return this.cartService.addToCart(
+      userId,
+      body.productId,
+      body.quantity || 1,
+      body.variantId,
+    );
   }
 
   /**
-   * PUT /cart/:id - Cập nhật số lượng
-   * Yêu cầu: Đăng nhập + Role CUSTOMER
+   * PUT /shopping-cart/:id - Cập nhật số lượng
+   * Params: id = cart_id
+   * Body: { quantity: number }
    */
   @Put(':id')
   @CustomerOnly()
   async updateQuantity(
     @CurrentUser('id') userId: string,
-    @Param('id') cartId: string,
-    @Body() body: { quantity: number },
+    @Param('id', ParseIntPipe) cartId: number,
+    @Body() body: UpdateQuantityDto,
   ) {
     return this.cartService.updateQuantity(userId, cartId, body.quantity);
   }
 
   /**
-   * DELETE /cart/:id - Xóa item khỏi giỏ
-   * Yêu cầu: Đăng nhập + Role CUSTOMER
+   * DELETE /shopping-cart/:id - Xóa item khỏi giỏ
    */
   @Delete(':id')
   @CustomerOnly()
   async removeFromCart(
     @CurrentUser('id') userId: string,
-    @Param('id') cartId: string,
+    @Param('id', ParseIntPipe) cartId: number,
   ) {
     return this.cartService.removeFromCart(userId, cartId);
   }
-}
 
+  /**
+   * DELETE /shopping-cart - Xóa toàn bộ giỏ hàng
+   */
+  @Delete()
+  @CustomerOnly()
+  async clearCart(@CurrentUser('id') userId: string) {
+    return this.cartService.clearCart(userId);
+  }
+}

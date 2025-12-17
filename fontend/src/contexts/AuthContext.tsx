@@ -12,7 +12,9 @@ export interface AuthUser {
   name?: string;
   phone?: string;
   role?: string;
+  is_admin?: boolean; 
   created_at?: string;
+  access_token?: string;
 }
 
 interface AuthContextType {
@@ -23,6 +25,7 @@ interface AuthContextType {
   logout: () => void;
   refreshAuth: () => void;
   getDisplayName: () => string;
+  is_admin:() =>boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,6 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return '';
     return user.full_name || user.fullName || user.name || user.email?.split('@')[0] || 'User';
   };
+  const is_admin = () => {
+    if (!user) return false;
+    return user.role === 'ADMIN' || user.role === 'admin';
+  };
 
   return (
     <AuthContext.Provider
@@ -105,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refreshAuth,
         getDisplayName,
+        is_admin,
       }}
     >
       {children}

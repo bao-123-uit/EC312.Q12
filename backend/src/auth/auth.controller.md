@@ -1,4 +1,5 @@
-
+File: backend/src/auth/auth.controller.ts
+-----------------------------------------
 
 import {
   Controller,
