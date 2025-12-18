@@ -1,0 +1,4034 @@
+================================================================================
+SCAN SELECTED FILES - 13 FILES
+================================================================================
+
+################################################################################
+## FILE 1: supabase.sql
+## Path: supabase.sql
+################################################################################
+
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.banners (
+  banner_id integer NOT NULL DEFAULT nextval('banners_banner_id_seq'::regclass),
+  title character varying,
+  subtitle character varying,
+  image_url character varying NOT NULL,
+  mobile_image_url character varying,
+  link_url character varying,
+  button_text character varying,
+  position character varying,
+  display_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  valid_from timestamp without time zone,
+  valid_to timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT banners_pkey PRIMARY KEY (banner_id)
+);
+CREATE TABLE public.blog_posts (
+  post_id integer NOT NULL DEFAULT nextval('blog_posts_post_id_seq'::regclass),
+  title character varying NOT NULL,
+  slug character varying NOT NULL UNIQUE,
+  content text NOT NULL,
+  excerpt text,
+  featured_image character varying,
+  author_id integer,
+  category character varying,
+  tags text,
+  view_count integer DEFAULT 0,
+  is_published boolean DEFAULT false,
+  published_at timestamp without time zone,
+  meta_title character varying,
+  meta_description text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT blog_posts_pkey PRIMARY KEY (post_id)
+);
+CREATE TABLE public.brands (
+  brand_id integer NOT NULL DEFAULT nextval('brands_brand_id_seq'::regclass),
+  brand_name character varying NOT NULL,
+  brand_slug character varying NOT NULL UNIQUE,
+  logo_url character varying,
+  description text,
+  country_origin character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT brands_pkey PRIMARY KEY (brand_id)
+);
+CREATE TABLE public.bundle_deals (
+  bundle_id integer NOT NULL DEFAULT nextval('bundle_deals_bundle_id_seq'::regclass),
+  bundle_name character varying NOT NULL,
+  bundle_slug character varying NOT NULL UNIQUE,
+  bundle_type character varying NOT NULL,
+  buy_quantity integer,
+  get_quantity integer,
+  discount_percent numeric,
+  discount_amount numeric,
+  description text,
+  is_active boolean DEFAULT true,
+  valid_from timestamp without time zone NOT NULL,
+  valid_to timestamp without time zone NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT bundle_deals_pkey PRIMARY KEY (bundle_id)
+);
+CREATE TABLE public.bundle_products (
+  id integer NOT NULL DEFAULT nextval('bundle_products_id_seq'::regclass),
+  bundle_id integer,
+  product_id integer,
+  quantity integer DEFAULT 1,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT bundle_products_pkey PRIMARY KEY (id),
+  CONSTRAINT bundle_products_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundle_deals(bundle_id),
+  CONSTRAINT bundle_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.categories (
+  category_id integer NOT NULL DEFAULT nextval('categories_category_id_seq'::regclass),
+  category_name character varying NOT NULL,
+  category_slug character varying NOT NULL UNIQUE,
+  parent_category_id integer,
+  description text,
+  image_url character varying,
+  icon_name character varying,
+  display_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT categories_pkey PRIMARY KEY (category_id),
+  CONSTRAINT categories_parent_category_id_fkey FOREIGN KEY (parent_category_id) REFERENCES public.categories(category_id)
+);
+CREATE TABLE public.contact_messages (
+  id integer NOT NULL DEFAULT nextval('contact_messages_id_seq'::regclass),
+  name character varying NOT NULL,
+  email character varying NOT NULL,
+  phone character varying,
+  subject character varying,
+  message text NOT NULL,
+  status character varying DEFAULT 'pending'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contact_messages_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.coupons (
+  coupon_id integer NOT NULL DEFAULT nextval('coupons_coupon_id_seq'::regclass),
+  coupon_code character varying NOT NULL UNIQUE,
+  coupon_type character varying NOT NULL,
+  discount_value numeric NOT NULL,
+  min_order_amount numeric,
+  max_discount_amount numeric,
+  usage_limit integer,
+  used_count integer DEFAULT 0,
+  valid_from timestamp without time zone NOT NULL,
+  valid_to timestamp without time zone NOT NULL,
+  is_active boolean DEFAULT true,
+  description text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT coupons_pkey PRIMARY KEY (coupon_id)
+);
+CREATE TABLE public.customer_addresses (
+  address_id integer NOT NULL DEFAULT nextval('customer_addresses_address_id_seq'::regclass),
+  customer_id integer,
+  address_type character varying,
+  full_name character varying,
+  phone character varying,
+  address_line1 character varying NOT NULL,
+  address_line2 character varying,
+  ward character varying,
+  district character varying,
+  city character varying NOT NULL,
+  postal_code character varying,
+  country character varying DEFAULT 'Vietnam'::character varying,
+  is_default boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT customer_addresses_pkey PRIMARY KEY (address_id),
+  CONSTRAINT customer_addresses_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
+);
+CREATE TABLE public.customers (
+  customer_id integer NOT NULL DEFAULT nextval('customers_customer_id_seq'::regclass),
+  email character varying NOT NULL UNIQUE,
+  password_hash character varying NOT NULL,
+  first_name character varying,
+  last_name character varying,
+  phone character varying,
+  date_of_birth date,
+  gender character varying,
+  avatar_url character varying,
+  is_verified boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  loyalty_points integer DEFAULT 0,
+  total_spent numeric DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  last_login timestamp without time zone,
+  CONSTRAINT customers_pkey PRIMARY KEY (customer_id)
+);
+CREATE TABLE public.design_collections (
+  collection_id integer NOT NULL DEFAULT nextval('design_collections_collection_id_seq'::regclass),
+  collection_name character varying NOT NULL,
+  collection_slug character varying NOT NULL UNIQUE,
+  description text,
+  banner_image character varying,
+  thumbnail_image character varying,
+  theme_color character varying,
+  is_featured boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  display_order integer DEFAULT 0,
+  valid_from timestamp without time zone,
+  valid_to timestamp without time zone,
+  view_count integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT design_collections_pkey PRIMARY KEY (collection_id)
+);
+CREATE TABLE public.flash_sales (
+  flash_sale_id integer NOT NULL DEFAULT nextval('flash_sales_flash_sale_id_seq'::regclass),
+  sale_name character varying NOT NULL,
+  product_id integer,
+  variant_id integer,
+  original_price numeric NOT NULL,
+  flash_price numeric NOT NULL,
+  discount_percent numeric,
+  quantity_limit integer,
+  quantity_sold integer DEFAULT 0,
+  start_time timestamp without time zone NOT NULL,
+  end_time timestamp without time zone NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT flash_sales_pkey PRIMARY KEY (flash_sale_id),
+  CONSTRAINT flash_sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT flash_sales_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.inventory (
+  inventory_id integer NOT NULL DEFAULT nextval('inventory_inventory_id_seq'::regclass),
+  product_id integer,
+  variant_id integer,
+  warehouse_location character varying,
+  quantity_available integer DEFAULT 0,
+  quantity_reserved integer DEFAULT 0,
+  quantity_sold integer DEFAULT 0,
+  reorder_level integer DEFAULT 10,
+  reorder_quantity integer DEFAULT 50,
+  last_restock_date timestamp without time zone,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT inventory_pkey PRIMARY KEY (inventory_id),
+  CONSTRAINT inventory_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT inventory_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.inventory_transactions (
+  transaction_id integer NOT NULL DEFAULT nextval('inventory_transactions_transaction_id_seq'::regclass),
+  product_id integer,
+  variant_id integer,
+  transaction_type character varying NOT NULL,
+  quantity integer NOT NULL,
+  reference_type character varying,
+  reference_id integer,
+  note text,
+  created_by character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT inventory_transactions_pkey PRIMARY KEY (transaction_id),
+  CONSTRAINT inventory_transactions_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT inventory_transactions_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.notifications (
+  notification_id integer NOT NULL DEFAULT nextval('notifications_notification_id_seq'::regclass),
+  customer_id integer,
+  type character varying NOT NULL,
+  title character varying NOT NULL,
+  message text NOT NULL,
+  link_url character varying,
+  is_read boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT notifications_pkey PRIMARY KEY (notification_id),
+  CONSTRAINT notifications_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
+);
+CREATE TABLE public.order_history (
+  history_id integer NOT NULL DEFAULT nextval('order_history_history_id_seq'::regclass),
+  order_id integer,
+  status character varying NOT NULL,
+  note text,
+  created_by character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT order_history_pkey PRIMARY KEY (history_id),
+  CONSTRAINT order_history_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
+CREATE TABLE public.order_items (
+  order_item_id integer NOT NULL DEFAULT nextval('order_items_order_item_id_seq'::regclass),
+  order_id integer,
+  product_id integer,
+  variant_id integer,
+  product_name character varying NOT NULL,
+  variant_name character varying,
+  sku character varying NOT NULL,
+  quantity integer NOT NULL,
+  unit_price numeric NOT NULL,
+  discount_amount numeric DEFAULT 0,
+  total_price numeric NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.orders (
+  order_id integer NOT NULL DEFAULT nextval('orders_order_id_seq'::regclass),
+  order_number character varying NOT NULL UNIQUE,
+  order_status character varying DEFAULT 'pending'::character varying,
+  payment_status character varying DEFAULT 'unpaid'::character varying,
+  payment_method character varying,
+  shipping_method character varying,
+  subtotal numeric NOT NULL,
+  discount_amount numeric DEFAULT 0,
+  shipping_fee numeric DEFAULT 0,
+  tax_amount numeric DEFAULT 0,
+  total_amount numeric NOT NULL,
+  coupon_code character varying,
+  shipping_address_id integer,
+  billing_address_id integer,
+  customer_note text,
+  admin_note text,
+  tracking_number character varying,
+  shipped_at timestamp without time zone,
+  delivered_at timestamp without time zone,
+  cancelled_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  shipping_full_name character varying,
+  shipping_phone character varying,
+  shipping_address text,
+  shipping_ward character varying,
+  shipping_district character varying,
+  shipping_city character varying,
+  customer_id uuid,
+  CONSTRAINT orders_pkey PRIMARY KEY (order_id),
+  CONSTRAINT orders_shipping_address_id_fkey FOREIGN KEY (shipping_address_id) REFERENCES public.customer_addresses(address_id),
+  CONSTRAINT orders_billing_address_id_fkey FOREIGN KEY (billing_address_id) REFERENCES public.customer_addresses(address_id),
+  CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.payment_transactions (
+  transaction_id integer NOT NULL DEFAULT nextval('payment_transactions_transaction_id_seq'::regclass),
+  order_id integer,
+  payment_gateway character varying NOT NULL,
+  transaction_ref character varying UNIQUE,
+  amount numeric NOT NULL,
+  currency character varying DEFAULT 'VND'::character varying,
+  status character varying NOT NULL,
+  payment_date timestamp without time zone,
+  response_data text,
+  ip_address character varying,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT payment_transactions_pkey PRIMARY KEY (transaction_id),
+  CONSTRAINT payment_transactions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
+CREATE TABLE public.phone_models (
+  model_id integer NOT NULL DEFAULT nextval('phone_models_model_id_seq'::regclass),
+  brand_name character varying NOT NULL,
+  model_name character varying NOT NULL,
+  model_code character varying,
+  release_year integer,
+  screen_size numeric,
+  dimensions character varying,
+  weight character varying,
+  image_url character varying,
+  is_popular boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  display_order integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT phone_models_pkey PRIMARY KEY (model_id)
+);
+CREATE TABLE public.product_attributes (
+  attribute_id integer NOT NULL DEFAULT nextval('product_attributes_attribute_id_seq'::regclass),
+  product_id integer,
+  attribute_name character varying NOT NULL,
+  attribute_value text NOT NULL,
+  CONSTRAINT product_attributes_pkey PRIMARY KEY (attribute_id),
+  CONSTRAINT product_attributes_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.product_collections (
+  id integer NOT NULL DEFAULT nextval('product_collections_id_seq'::regclass),
+  product_id integer,
+  collection_id integer,
+  display_order integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_collections_pkey PRIMARY KEY (id),
+  CONSTRAINT product_collections_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT product_collections_collection_id_fkey FOREIGN KEY (collection_id) REFERENCES public.design_collections(collection_id)
+);
+CREATE TABLE public.product_compatibility (
+  compatibility_id integer NOT NULL DEFAULT nextval('product_compatibility_compatibility_id_seq'::regclass),
+  product_id integer,
+  phone_model_id integer,
+  fit_type character varying DEFAULT 'exact'::character varying,
+  notes text,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_compatibility_pkey PRIMARY KEY (compatibility_id),
+  CONSTRAINT product_compatibility_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT product_compatibility_phone_model_id_fkey FOREIGN KEY (phone_model_id) REFERENCES public.phone_models(model_id)
+);
+CREATE TABLE public.product_images (
+  image_id integer NOT NULL DEFAULT nextval('product_images_image_id_seq'::regclass),
+  product_id integer,
+  variant_id integer,
+  image_url character varying NOT NULL,
+  alt_text character varying,
+  display_order integer DEFAULT 0,
+  is_primary boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_images_pkey PRIMARY KEY (image_id),
+  CONSTRAINT product_images_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT product_images_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.product_reviews (
+  review_id integer NOT NULL DEFAULT nextval('product_reviews_review_id_seq'::regclass),
+  product_id integer,
+  customer_id integer,
+  order_id integer,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  title character varying,
+  comment text,
+  is_verified_purchase boolean DEFAULT false,
+  is_approved boolean DEFAULT false,
+  helpful_count integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_reviews_pkey PRIMARY KEY (review_id),
+  CONSTRAINT product_reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT product_reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
+  CONSTRAINT product_reviews_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
+CREATE TABLE public.product_variants (
+  variant_id integer NOT NULL DEFAULT nextval('product_variants_variant_id_seq'::regclass),
+  product_id integer,
+  sku character varying NOT NULL UNIQUE,
+  variant_name character varying,
+  color character varying,
+  color_code character varying,
+  size character varying,
+  material character varying,
+  price numeric,
+  sale_price numeric,
+  image_url character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT product_variants_pkey PRIMARY KEY (variant_id),
+  CONSTRAINT product_variants_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.products (
+  product_id integer NOT NULL DEFAULT nextval('products_product_id_seq'::regclass),
+  product_name character varying NOT NULL,
+  product_slug character varying NOT NULL UNIQUE,
+  category_id integer,
+  brand_id integer,
+  sku character varying NOT NULL UNIQUE,
+  description text,
+  short_description text,
+  price numeric NOT NULL,
+  sale_price numeric,
+  cost_price numeric,
+  is_featured boolean DEFAULT false,
+  is_new boolean DEFAULT false,
+  is_bestseller boolean DEFAULT false,
+  is_trending boolean DEFAULT false,
+  status character varying DEFAULT 'active'::character varying,
+  meta_title character varying,
+  meta_description text,
+  meta_keywords text,
+  view_count integer DEFAULT 0,
+  rating_average numeric DEFAULT 0,
+  review_count integer DEFAULT 0,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT products_pkey PRIMARY KEY (product_id),
+  CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id),
+  CONSTRAINT products_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(brand_id)
+);
+CREATE TABLE public.recently_viewed (
+  id integer NOT NULL DEFAULT nextval('recently_viewed_id_seq'::regclass),
+  customer_id integer,
+  product_id integer,
+  viewed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT recently_viewed_pkey PRIMARY KEY (id),
+  CONSTRAINT recently_viewed_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
+  CONSTRAINT recently_viewed_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.refunds (
+  refund_id integer NOT NULL DEFAULT nextval('refunds_refund_id_seq'::regclass),
+  order_id integer,
+  refund_amount numeric NOT NULL,
+  refund_reason text NOT NULL,
+  refund_status character varying DEFAULT 'pending'::character varying,
+  refund_method character varying,
+  processed_by integer,
+  approved_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT refunds_pkey PRIMARY KEY (refund_id),
+  CONSTRAINT refunds_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
+  CONSTRAINT refunds_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.staff(staff_id)
+);
+CREATE TABLE public.review_images (
+  review_image_id integer NOT NULL DEFAULT nextval('review_images_review_image_id_seq'::regclass),
+  review_id integer,
+  image_url character varying NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT review_images_pkey PRIMARY KEY (review_image_id),
+  CONSTRAINT review_images_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.product_reviews(review_id)
+);
+CREATE TABLE public.search_logs (
+  search_id integer NOT NULL DEFAULT nextval('search_logs_search_id_seq'::regclass),
+  customer_id integer,
+  search_query character varying NOT NULL,
+  results_count integer DEFAULT 0,
+  clicked_product_id integer,
+  search_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT search_logs_pkey PRIMARY KEY (search_id),
+  CONSTRAINT search_logs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
+  CONSTRAINT search_logs_clicked_product_id_fkey FOREIGN KEY (clicked_product_id) REFERENCES public.products(product_id)
+);
+CREATE TABLE public.shipping_rates (
+  rate_id integer NOT NULL DEFAULT nextval('shipping_rates_rate_id_seq'::regclass),
+  zone_id integer,
+  shipping_method character varying NOT NULL,
+  min_order_amount numeric DEFAULT 0,
+  max_order_amount numeric,
+  shipping_fee numeric NOT NULL,
+  estimated_days character varying,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT shipping_rates_pkey PRIMARY KEY (rate_id),
+  CONSTRAINT shipping_rates_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.shipping_zones(zone_id)
+);
+CREATE TABLE public.shipping_zones (
+  zone_id integer NOT NULL DEFAULT nextval('shipping_zones_zone_id_seq'::regclass),
+  zone_name character varying NOT NULL,
+  countries text,
+  cities text,
+  description text,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT shipping_zones_pkey PRIMARY KEY (zone_id)
+);
+CREATE TABLE public.shopping_carts (
+  cart_id integer NOT NULL DEFAULT nextval('shopping_carts_cart_id_seq'::regclass),
+  customer_id uuid,
+  product_id integer,
+  variant_id integer,
+  quantity integer NOT NULL DEFAULT 1,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT shopping_carts_pkey PRIMARY KEY (cart_id),
+  CONSTRAINT shopping_carts_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT shopping_carts_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id),
+  CONSTRAINT shopping_carts_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.staff (
+  staff_id integer NOT NULL DEFAULT nextval('staff_staff_id_seq'::regclass),
+  email character varying NOT NULL UNIQUE,
+  password_hash character varying NOT NULL,
+  full_name character varying NOT NULL,
+  phone character varying,
+  role character varying NOT NULL,
+  permissions text,
+  is_active boolean DEFAULT true,
+  last_login timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT staff_pkey PRIMARY KEY (staff_id)
+);
+CREATE TABLE public.system_settings (
+  setting_id integer NOT NULL DEFAULT nextval('system_settings_setting_id_seq'::regclass),
+  setting_key character varying NOT NULL UNIQUE,
+  setting_value text,
+  setting_type character varying,
+  description text,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT system_settings_pkey PRIMARY KEY (setting_id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email character varying NOT NULL UNIQUE,
+  password_hash text NOT NULL,
+  full_name character varying,
+  phone character varying,
+  avatar_url text,
+  address text,
+  is_admin boolean DEFAULT false,
+  role character varying DEFAULT 'user'::character varying,
+  status character varying DEFAULT 'active'::character varying,
+  email_verified boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  last_login_at timestamp with time zone,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.wishlists (
+  wishlist_id integer NOT NULL DEFAULT nextval('wishlists_wishlist_id_seq'::regclass),
+  customer_id integer,
+  product_id integer,
+  variant_id integer,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT wishlists_pkey PRIMARY KEY (wishlist_id),
+  CONSTRAINT wishlists_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
+  CONSTRAINT wishlists_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
+  CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+
+
+
+################################################################################
+## FILE 2: supabase.service.ts
+## Path: backend/src/supabase.service.ts
+################################################################################
+
+import { Injectable } from '@nestjs/common';
+import { createClient } from '@supabase/supabase-js';
+
+@Injectable()
+export class SupabaseService {
+  private supabase = createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  );
+
+  // ============ USERS ============
+  async getCustomers() {
+    const { data, error } = await this.supabase.from('users').select('*');
+    return { data, error };
+  }
+
+  async getCustomerById(customerId: string) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('id', customerId)
+      .single();
+    return { data, error };
+  }
+
+  async createCustomer(customerData: any) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .insert([customerData])
+      .select();
+    return { data, error };
+  }
+
+  async getCustomerByEmail(email: string) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+    return { data, error };
+  }
+
+  async loginCustomer(email: string, password: string) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password_hash', password)
+      .single();
+    return { data, error };
+  }
+
+  async createCustomerAddress(addressData: any) {
+    const { data, error } = await this.supabase
+      .from('customer_addresses')
+      .insert([addressData])
+      .select();
+    return { data, error };
+  }
+
+  async getCustomerAddresses(customerId: number) {
+    const { data, error } = await this.supabase
+      .from('customer_addresses')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('is_default', { ascending: false });
+    return { data, error };
+  }
+
+  // ============ PRODUCTS ============
+  async getProducts(limit = 10) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*')
+      .limit(limit);
+    return { data, error };
+  }
+
+  async getProductById(productId: number) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*')
+      .eq('product_id', productId)
+      .single();
+    return { data, error };
+  }
+
+  async createProduct(productData: any) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .insert([productData])
+      .select();
+    return { data, error };
+  }
+
+  async updateProduct(productId: number, productData: any) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .update(productData)
+      .eq('product_id', productId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteProduct(productId: number) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .delete()
+      .eq('product_id', productId);
+    return { data, error };
+  }
+
+  async getProductsByCategory(categoryId: number) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*')
+      .eq('category_id', categoryId);
+    return { data, error };
+  }
+
+  // ============ PRODUCTS BY SEASON ============
+  async getProductsBySeason(season: string) {
+    const { data, error } = await this.supabase
+      .from('products')
+      .select('*')
+      .eq('season', season)
+      .eq('status', 'active');
+    return { data, error };
+  }
+
+  async getSeasonProductCounts() {
+    const seasons = ['noel', 'valentine', 'tet'];
+    const counts: Record<string, number> = {};
+    
+    for (const season of seasons) {
+      const { data, error } = await this.supabase
+        .from('products')
+        .select('product_id', { count: 'exact' })
+        .eq('season', season)
+        .eq('status', 'active');
+      
+      counts[season] = data?.length || 0;
+    }
+    
+    return counts;
+  }
+
+  // ============ ORDERS ============
+  async getOrders(limit = 20) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return { data, error };
+  }
+
+  async getOrderById(orderId: number) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
+    return { data, error };
+  }
+
+  async getOrdersByCustomer(customerId: number) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .select('*')
+      .eq('customer_id', customerId)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  }
+
+  async createOrder(orderData: any) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .insert([orderData])
+      .select();
+    return { data, error };
+  }
+
+  async updateOrderStatus(orderId: number, newStatus: string) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .update({ order_status: newStatus, updated_at: new Date() })
+      .eq('order_id', orderId)
+      .select();
+    return { data, error };
+  }
+
+  async updatePaymentStatus(orderId: number, paymentStatus: string) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .update({ payment_status: paymentStatus, updated_at: new Date() })
+      .eq('order_id', orderId)
+      .select();
+    return { data, error };
+  }
+
+  // ============ ORDER ITEMS ============
+  async getOrderItems(orderId: number) {
+    const { data, error } = await this.supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', orderId);
+    return { data, error };
+  }
+
+  async createOrderItem(itemData: any) {
+    const { data, error } = await this.supabase
+      .from('order_items')
+      .insert([itemData])
+      .select();
+    return { data, error };
+  }
+  // ============ ORDERS - ENHANCED ============
+
+// Tạo order với đầy đủ thông tin
+async createFullOrder(orderData: {
+  customer_id: string;
+  order_number: string;
+  subtotal: number;
+  discount_amount?: number;
+  shipping_fee?: number;
+  total_amount: number;
+  payment_method?: string;
+  shipping_address_id?: number;
+  customer_note?: string;
+  shipping_full_name?: string;
+  shipping_phone?: string;
+  shipping_address?: string;
+  shipping_ward?: string;
+  shipping_district?: string;
+  shipping_city?: string;
+}) {
+  const { data, error } = await this.supabase
+    .from('orders')
+    .insert([{
+      ...orderData,
+      order_status: 'pending',
+      payment_status: 'unpaid',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }])
+    .select();
+  return { data, error };
+}
+
+// Tạo order item với đầy đủ thông tin
+async createFullOrderItem(itemData: {
+  order_id: number;
+  product_id: number;
+  //variant_id?: number;
+  product_name: string;
+  variant_name?: string;
+  sku: string;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  total_price: number;
+}) {
+  const { data, error } = await this.supabase
+    .from('order_items')
+    .insert([itemData])
+    .select();
+  return { data, error };
+}
+
+// Lấy order theo order_number
+async getOrderByNumber(orderNumber: string) {
+  const { data, error } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_number', orderNumber)
+    .single();
+  return { data, error };
+}
+
+// Lấy order với items
+async getOrderWithItems(orderId: number) {
+  const { data: order, error: orderError } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_id', orderId)
+    .single();
+
+  if (orderError) return { data: null, error: orderError };
+
+  const { data: items, error: itemsError } = await this.supabase
+    .from('order_items')
+    .select(`
+      *,
+      products (
+        product_id,
+        product_name,
+        product_slug,
+        price,
+        sale_price
+      )
+    `)
+    .eq('order_id', orderId);
+
+  if (itemsError) return { data: order, error: itemsError };
+
+  return { 
+    data: { ...order, items: items || [] }, 
+    error: null 
+  };
+}
+
+// Lấy order với items theo order_number
+async getOrderWithItemsByNumber(orderNumber: string) {
+  const { data: order, error: orderError } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_number', orderNumber)
+    .single();
+
+  if (orderError || !order) return { data: null, error: orderError };
+
+  const { data: items, error: itemsError } = await this.supabase
+    .from('order_items')
+    .select(`
+      *,
+      products (
+        product_id,
+        product_name,
+        product_slug
+      )
+    `)
+    .eq('order_id', order.order_id);
+
+  return { 
+    data: { ...order, items: items || [] }, 
+    error: itemsError 
+  };
+}
+
+// ============ COLLECTIONS - ENHANCED ============
+
+// Lấy tất cả collections (từ design_collections)
+async getAllDesignCollections() {
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+  return { data, error };
+}
+
+// Lấy collection theo type
+async getDesignCollectionsByType(type: string) {
+  // type: 'normal' hoặc 'seasonal'
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('is_active', true)
+    .ilike('collection_name', type === 'seasonal' ? '%Noel%|%Valentine%|%Tết%' : '%')
+    .order('display_order', { ascending: true });
+  return { data, error };
+}
+
+// Lấy collection theo slug
+async getDesignCollectionBySlug(slug: string) {
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('collection_slug', slug)
+    .eq('is_active', true)
+    .single();
+  return { data, error };
+}
+
+// Lấy sản phẩm trong collection
+async getProductsByDesignCollection(collectionId: number) {
+  const { data: pcData, error: pcError } = await this.supabase
+    .from('product_collections')
+    .select('product_id')
+    .eq('collection_id', collectionId)
+    .order('display_order', { ascending: true });
+
+  if (pcError || !pcData || pcData.length === 0) {
+    return { data: [], error: pcError };
+  }
+
+  const productIds = pcData.map(pc => pc.product_id);
+
+  const { data: products, error: prodError } = await this.supabase
+    .from('products')
+    .select(`
+      *,
+      product_images (
+        image_url,
+        is_primary
+      )
+    `)
+    .in('product_id', productIds)
+    .eq('status', 'active');
+
+  return { data: products || [], error: prodError };
+}
+
+// Đếm sản phẩm trong mỗi collection
+async getDesignCollectionProductCounts() {
+  const { data: collections, error: colError } = await this.supabase
+    .from('design_collections')
+    .select('collection_id, collection_name, collection_slug')
+    .eq('is_active', true);
+
+  if (colError) return { data: null, error: colError };
+
+  const counts: Record<string, number> = {};
+  
+  for (const col of collections || []) {
+    const { data: pcData } = await this.supabase
+      .from('product_collections')
+      .select('product_id', { count: 'exact' })
+      .eq('collection_id', col.collection_id);
+    
+    counts[col.collection_slug] = pcData?.length || 0;
+  }
+
+  return { data: counts, error: null };
+}
+  // ============ PAYMENT TRANSACTIONS ============
+  async createPaymentTransaction(transactionData: any) {
+    const { data, error } = await this.supabase
+      .from('payment_transactions')
+      .insert([transactionData])
+      .select();
+    return { data, error };
+  }
+
+  async getPaymentTransactionsByOrder(orderId: number) {
+    const { data, error } = await this.supabase
+      .from('payment_transactions')
+      .select('*')
+      .eq('order_id', orderId);
+    return { data, error };
+  }
+
+  // ============ INVENTORY ============
+  async getInventory(productId: number) {
+    const { data, error } = await this.supabase
+      .from('inventory')
+      .select('*')
+      .eq('product_id', productId);
+    return { data, error };
+  }
+
+  async updateInventory(inventoryId: number, updates: any) {
+    const { data, error } = await this.supabase
+      .from('inventory')
+      .update(updates)
+      .eq('inventory_id', inventoryId)
+      .select();
+    return { data, error };
+  }
+
+  // ============ CATEGORIES ============
+  async getCategories() {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    return { data, error };
+  }
+
+  async getCategoriesWithProductCount() {
+    // Lấy tất cả categories
+    const { data: categories, error: catError } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (catError) return { data: null, error: catError };
+
+    // Lấy tất cả sản phẩm (không lọc status để đếm hết)
+    const { data: products, error: prodError } = await this.supabase
+      .from('products')
+      .select('category_id, status');
+
+    if (prodError) return { data: categories, error: prodError };
+
+    // Đếm số sản phẩm theo category_id (chấp nhận status: active, Active, hoặc không có status)
+    const productCountMap: Record<number, number> = {};
+    products?.forEach((p: any) => {
+      if (p.category_id) {
+        const status = (p.status || '').toLowerCase();
+        // Đếm nếu status là active hoặc không có status
+        if (status === 'active' || status === '' || !p.status) {
+          productCountMap[p.category_id] = (productCountMap[p.category_id] || 0) + 1;
+        }
+      }
+    });
+
+    // Gắn số lượng sản phẩm vào từng category
+    const categoriesWithCount = categories?.map((cat: any) => ({
+      ...cat,
+      product_count: productCountMap[cat.category_id] || 0
+    }));
+
+    return { data: categoriesWithCount, error: null };
+  }
+
+  async getCategoryById(categoryId: number) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('category_id', categoryId)
+      .single();
+    return { data, error };
+  }
+
+  async getCategoryBySlug(slug: string) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('category_slug', slug)
+      .eq('is_active', true)
+      .single();
+    return { data, error };
+  }
+
+  async getRootCategories() {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .is('parent_category_id', null)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    return { data, error };
+  }
+
+  async getChildCategories(parentId: number) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select('*')
+      .eq('parent_category_id', parentId)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    return { data, error };
+  }
+
+  async createCategory(categoryData: any) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .insert([categoryData])
+      .select();
+    return { data, error };
+  }
+
+  async updateCategory(categoryId: number, categoryData: any) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .update(categoryData)
+      .eq('category_id', categoryId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteCategory(categoryId: number) {
+    const { data, error } = await this.supabase
+      .from('categories')
+      .delete()
+      .eq('category_id', categoryId);
+    return { data, error };
+  }
+
+  // ============ REVIEWS ============
+  async getAllReviews(limit = 50) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return { data, error };
+  }
+
+  async getProductReviews(productId: number) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .select('*')
+      .eq('product_id', productId)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  }
+
+  async getReviewById(reviewId: number) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .select('*')
+      .eq('review_id', reviewId)
+      .single();
+    return { data, error };
+  }
+
+  async createReview(reviewData: any) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .insert([reviewData])
+      .select();
+    return { data, error };
+  }
+
+  async updateReview(reviewId: number, reviewData: any) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .update(reviewData)
+      .eq('review_id', reviewId)
+      .select();
+    return { data, error };
+  }
+
+  async deleteReview(reviewId: number) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .delete()
+      .eq('review_id', reviewId);
+    return { data, error };
+  }
+
+  async approveReview(reviewId: number, isApproved: boolean) {
+    const { data, error } = await this.supabase
+      .from('product_reviews')
+      .update({ is_approved: isApproved })
+      .eq('review_id', reviewId)
+      .select();
+    return { data, error };
+  }
+
+  // ============ WISHLIST ============
+  async getWishlist(customerId: number) {
+    const { data, error } = await this.supabase
+      .from('wishlists')
+      .select('*')
+      .eq('customer_id', customerId);
+    return { data, error };
+  }
+
+  async addToWishlist(customerId: number, productId: number, variantId?: number) {
+    const { data, error } = await this.supabase
+      .from('wishlists')
+      .insert([{ customer_id: customerId, product_id: productId, variant_id: variantId || null }])
+      .select();
+    return { data, error };
+  }
+
+  async removeFromWishlist(customerId: number, productId: number) {
+    const { error } = await this.supabase
+      .from('wishlists')
+      .delete()
+      .eq('customer_id', customerId)
+      .eq('product_id', productId);
+    return { error };
+  }
+
+  // ============ COUPONS ============
+  async getCoupon(couponCode: string) {
+    const { data, error } = await this.supabase
+      .from('coupons')
+      .select('*')
+      .eq('coupon_code', couponCode)
+      .eq('is_active', true)
+      .single();
+    return { data, error };
+  }
+
+  // ============ GENERIC QUERY (for any table) ============
+  async query(tableName: string, filters?: any, limit?: number) {
+    let query = this.supabase.from(tableName).select('*');
+    
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        query = query.eq(key, filters[key]);
+      });
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  }
+
+  // ============ CONTACT MESSAGES ============
+  async getAllContactMessages(limit = 50) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return { data, error };
+  }
+
+  async getContactMessageById(id: number) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .select('*')
+      .eq('id', id)
+      .single();
+    return { data, error };
+  }
+
+  async createContactMessage(messageData: any) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .insert([messageData])
+      .select();
+    return { data, error };
+  }
+
+  async updateContactMessageStatus(id: number, status: string) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+    return { data, error };
+  }
+
+  async deleteContactMessage(id: number) {
+    const { data, error } = await this.supabase
+      .from('contact_messages')
+      .delete()
+      .eq('id', id);
+    return { data, error };
+  }
+    // ============ SHOPPING CART ============
+  // async createProduct(productData: any) {
+  //   const { data, error } = await this.supabase
+  //     .from('products')
+  //     .insert([productData])
+  //     .select();
+  //   return { data, error };
+  // }
+  // CREATE: thêm sản phẩm vào giỏ
+  // async createShoppingCart(cartData: any) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .insert([cartData])
+  //     .select();
+  //     // .single();
+
+  //   return { data, error };
+  // }
+
+  // // READ: lấy giỏ hàng theo customer
+  // // async getShoppingCart(customerId: number) {
+  // //   const { data, error } = await this.supabase
+  // //     .from('shopping_carts')
+  // //     .select('*')
+  // //     .eq('customer_id', customerId)
+  // //     .order('created_at', { ascending: false });
+
+  // //   return { data, error };
+  // // }
+
+  // // UPDATE: cập nhật số lượng
+  // async updateShoppingCart(
+  //   cartId: number,
+  //   quantity: number,
+  // ) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .update({
+  //       quantity,
+  //       updated_at: new Date().toISOString(),
+  //     })
+  //     .eq('cart_id', cartId)
+  //     .select()
+  //     .single();
+
+  //   return { data, error };
+  // }
+
+  // // DELETE: xóa sản phẩm khỏi giỏ
+  // async deleteShoppingCart(cartId: number) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .delete()
+  //     .eq('cart_id', cartId);
+
+  //   return { data, error };
+  // }
+  // async getCartItemByUserAndProduct(
+  //   userId: string,
+  //   productId: number,
+  // ) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('customer_id', userId)
+  //     .eq('product_id', productId)
+  //     .single();
+
+  //   return { data, error };
+  // }
+  // async getCartItemById(cartId: string) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('cart_id', cartId)
+  //     .single();
+
+  //   return { data, error };
+  // }
+  // async getShoppingCart(customerId: string) {
+  //   const { data, error } = await this.supabase
+  //     .from('shopping_carts')
+  //     .select('*')
+  //     .eq('customer_id', customerId)
+  //     .order('created_at', { ascending: false });
+
+  //   return { data, error };
+  // }
+  // ============ SHOPPING CART (CẬP NHẬT) ============
+
+/**
+ * Lấy giỏ hàng theo user_id (UUID) - JOIN với products
+ */
+async getShoppingCartByUserId(userId: string) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select(`
+      cart_id,
+      customer_id,
+      product_id,
+      variant_id,
+      quantity,
+      created_at,
+      updated_at,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price,
+        status
+      )
+    `)
+    .eq('customer_id', userId)
+    .order('created_at', { ascending: false });
+
+  return { data, error };
+}
+
+/**
+ * Kiểm tra sản phẩm đã có trong giỏ chưa
+ */
+async getCartItemByUserAndProduct(userId: string, productId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select('*')
+    .eq('customer_id', userId)
+    .eq('product_id', productId)
+    .maybeSingle();  // Dùng maybeSingle thay vì single để tránh lỗi khi không có data
+
+  return { data, error };
+}
+
+/**
+ * Thêm sản phẩm vào giỏ
+ */
+/**
+ * Map từ users.id (UUID) sang customers.customer_id (INTEGER)
+ * Vì 2 bảng liên kết qua email
+ */
+async createShoppingCartItem(cartData: {
+  customer_id: string;  // UUID từ users.id
+  product_id: number;
+  variant_id?: number | null;
+  quantity: number;
+}) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .insert([{
+      customer_id: cartData.customer_id,  // ✅ UUID trực tiếp, không cần map
+      product_id: cartData.product_id,
+      variant_id: cartData.variant_id || null,
+      quantity: cartData.quantity,
+    }])
+    .select(`...`)
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Cập nhật số lượng
+ */
+async updateShoppingCartQuantity(cartId: number, quantity: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .update({
+      quantity,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('cart_id', cartId)
+    .select(`
+      cart_id,
+      customer_id,
+      product_id,
+      quantity,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price
+      )
+    `)
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Xóa item khỏi giỏ
+ */
+async deleteShoppingCartItem(cartId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .delete()
+    .eq('cart_id', cartId);
+
+  return { data, error };
+}
+
+/**
+ * Xóa toàn bộ giỏ hàng của user
+ */
+async clearShoppingCart(userId: string) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .delete()
+    .eq('customer_id', userId);
+
+  return { data, error };
+}
+
+/**
+ * Lấy cart item theo ID (để verify ownership)
+ */
+async getCartItemById(cartId: number) {
+  const { data, error } = await this.supabase
+    .from('shopping_carts')
+    .select('*')
+    .eq('cart_id', cartId)
+    .single();
+
+  return { data, error };
+}
+
+
+}
+
+
+
+
+################################################################################
+## FILE 3: auth.service.ts
+## Path: backend/src/auth/auth.service.ts
+################################################################################
+
+import { 
+  Injectable, 
+  UnauthorizedException, 
+  BadRequestException, 
+  Logger,
+  ConflictException 
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as bcrypt from 'bcrypt';
+import { UserRole } from '../common';
+import type { AuthenticatedUser } from '../common';
+import { JwtService } from '@nestjs/jwt';
+
+@Injectable()
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private supabase: SupabaseClient;
+  private readonly SALT_ROUNDS = 10;
+
+  constructor(
+    private configService: ConfigService,
+    private jwtService: JwtService,
+  ) {
+    this.supabase = createClient(
+      this.configService.get<string>('SUPABASE_URL')!,
+      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ĐĂNG KÝ TÀI KHOẢN MỚI
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  async register(userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    phone?: string;
+  }) {
+    try {
+      const { email, password, full_name, phone } = userData;
+
+      // 1. Validate input
+      if (!email || !password || !full_name) {
+        throw new BadRequestException('Email, password và họ tên là bắt buộc');
+      }
+
+      if (password.length < 6) {
+        throw new BadRequestException('Mật khẩu phải có ít nhất 6 ký tự');
+      }
+
+      // 2. Kiểm tra email đã tồn tại chưa
+      const { data: existingUser, error: checkError } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      if (existingUser) {
+        throw new ConflictException('Email đã được sử dụng');
+      }
+
+      // 3. Hash password với bcrypt
+      const hashedPassword = await bcrypt.hash(password, this.SALT_ROUNDS);
+
+      // 4. Tạo user mới trong bảng users
+      const { data: newUser, error: insertError } = await this.supabase
+        .from('users')
+        .insert({
+          email: email.toLowerCase().trim(),
+          password_hash: hashedPassword,
+          full_name: full_name.trim(),
+          phone: phone?.trim() || null,
+          role: 'customer',
+          status: 'active',
+          email_verified: false,
+          is_admin: false,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        this.logger.error(`Register insert error: ${insertError.message}`);
+        throw new BadRequestException(`Không thể tạo tài khoản: ${insertError.message}`);
+      }
+
+      this.logger.log(`User registered successfully: ${email}`);
+
+      return {
+        success: true,
+        message: 'Đăng ký thành công! Bạn có thể đăng nhập ngay.',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          full_name: newUser.full_name,
+          phone: newUser.phone,
+          role: newUser.role,
+          created_at: newUser.created_at,
+        },
+      };
+
+    } catch (error: any) {
+      this.logger.error(`Register error: ${error.message}`);
+      
+      if (error instanceof BadRequestException || error instanceof ConflictException) {
+        throw error;
+      }
+      
+      throw new BadRequestException(error.message || 'Đăng ký thất bại');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ĐĂNG NHẬP
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async login(email: string, password: string) {
+    try {
+      // 1. Validate input
+      if (!email || !password) {
+        throw new BadRequestException('Email và mật khẩu là bắt buộc');
+      }
+
+      // 2. Tìm user theo email
+      const { data: userData, error: dbError } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      if (dbError || !userData) {
+        this.logger.warn(`Login failed: User not found - ${email}`);
+        throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      }
+
+      // 3. Kiểm tra status
+      if (userData.status !== 'active') {
+        throw new UnauthorizedException('Tài khoản đã bị khóa');
+      }
+
+      // 4. So sánh password với bcrypt
+      const isPasswordValid = await bcrypt.compare(password, userData.password_hash);
+
+      if (!isPasswordValid) {
+        this.logger.warn(`Login failed: Wrong password - ${email}`);
+        throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      }
+
+      // 5. Tạo JWT payload
+      const payload = {
+        sub: userData.id,              // userId
+        email: userData.email,
+        role: userData.is_admin ? 'admin' : userData.role,
+      };
+
+      // 6. Sign JWT
+      const access_token = this.jwtService.sign(payload);
+
+      // 7. Cập nhật last_login_at
+      await this.supabase
+        .from('users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', userData.id);
+
+      this.logger.log(`User logged in successfully: ${email}`);
+
+      // 8. Trả về thông tin user (không có password)
+      return {
+        success: true,
+        message: 'Đăng nhập thành công',
+        access_token,
+        user: {
+          id: userData.id,
+          email: userData.email,
+          full_name: userData.full_name,
+          phone: userData.phone,
+          avatar_url: userData.avatar_url,
+          address: userData.address,
+          role: userData.role,
+          is_admin: userData.is_admin,
+          created_at: userData.created_at,
+        },
+        role: userData.is_admin ? 'admin' : userData.role,
+      };
+
+    } catch (error: any) {
+      this.logger.error(`Login error: ${error.message}`);
+      
+      if (error instanceof UnauthorizedException || error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      throw new UnauthorizedException('Đăng nhập thất bại');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VALIDATE TOKEN (SỬA ĐỂ DÙNG CUSTOM JWT)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async validateToken(token: string): Promise<AuthenticatedUser> {
+    try {
+      // 🔧 SỬA: Verify Custom JWT thay vì dùng Supabase Auth
+      let payload: any;
+      
+      try {
+        payload = this.jwtService.verify(token);
+      } catch (jwtError: any) {
+        this.logger.error(`JWT verify error: ${jwtError.message}`);
+        throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
+      }
+
+      // Kiểm tra payload có đủ thông tin không
+      if (!payload.sub || !payload.email) {
+        throw new UnauthorizedException('Token không chứa đủ thông tin');
+      }
+
+      // Lấy thông tin user từ bảng users để đảm bảo user còn tồn tại và active
+      const { data: userData, error: dbError } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('id', payload.sub)
+        .single();
+
+      if (dbError || !userData) {
+        this.logger.error(`User not found for token: ${payload.sub}`);
+        throw new UnauthorizedException('Không tìm thấy thông tin user');
+      }
+
+      // Kiểm tra user còn active không
+      if (userData.status !== 'active') {
+        throw new UnauthorizedException('Tài khoản đã bị khóa');
+      }
+
+      return {
+        id: userData.id,
+        email: userData.email,
+        fullName: userData.full_name,
+        phone: userData.phone,
+        role: userData.is_admin ? UserRole.ADMIN : UserRole.CUSTOMER,
+        createdAt: new Date(userData.created_at),
+      };
+
+    } catch (error: any) {
+      this.logger.error(`Token validation error: ${error.message}`);
+      
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      
+      throw new UnauthorizedException('Token không hợp lệ');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async getUserById(userId: string) {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return data;
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string) {
+    try {
+      // 1. Lấy user hiện tại
+      const user = await this.getUserById(userId);
+      if (!user) {
+        throw new BadRequestException('Không tìm thấy user');
+      }
+
+      // 2. Verify old password
+      const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password_hash);
+      if (!isOldPasswordValid) {
+        throw new BadRequestException('Mật khẩu cũ không đúng');
+      }
+
+      // 3. Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+      // 4. Update password
+      const { error } = await this.supabase
+        .from('users')
+        .update({ 
+          password_hash: hashedNewPassword,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) {
+        throw new BadRequestException('Không thể đổi mật khẩu');
+      }
+
+      return { success: true, message: 'Đổi mật khẩu thành công' };
+
+    } catch (error: any) {
+      throw new BadRequestException(error.message || 'Đổi mật khẩu thất bại');
+    }
+  }
+}
+
+
+
+################################################################################
+## FILE 4: auth.module.ts
+## Path: backend/src/auth/auth.module.ts
+################################################################################
+
+// import { Module } from '@nestjs/common';
+// import { PassportModule } from '@nestjs/passport';
+// import { ConfigModule } from '@nestjs/config';
+// import { AuthController } from './auth.controller';
+// import { AuthService } from './auth.service';
+// import { SupabaseService } from '../supabase.service';
+
+// @Module({
+//   imports: [PassportModule, ConfigModule],
+//   controllers: [AuthController],
+//   providers: [AuthService, SupabaseService],
+//   exports: [AuthService],
+// })
+// export class AuthModule {}
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule , ConfigService } from '@nestjs/config';
+
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtAuthGuard, RolesGuard, CustomerGuard } from './guards';
+
+@Module({
+  imports: [ConfigModule,PassportModule,JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET') || 'jwt-secret-key',
+        signOptions: { expiresIn: '7d' },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    CustomerGuard,
+    
+  ],
+  exports: [
+    AuthService,
+    JwtAuthGuard,
+    RolesGuard,
+    CustomerGuard,
+  ],
+})
+export class AuthModule {}
+
+
+
+################################################################################
+## FILE 5: auth.controller.ts
+## Path: backend/src/auth/auth.controller.ts
+################################################################################
+
+
+
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Headers,
+  UseGuards,
+  UnauthorizedException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { JwtAuthGuard, CustomerGuard, RolesGuard } from './guards';
+import { Roles, CurrentUser, CustomerOnly } from './decorators';
+import { UserRole } from '../common';
+import type { AuthenticatedUser } from '../common';
+
+// DTOs
+class RegisterDto {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+}
+
+class LoginDto {
+  email: string;
+  password: string;
+}
+
+class ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PUBLIC ENDPOINTS (không cần authentication)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * POST /auth/register - Đăng ký tài khoản mới
+   */
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() body: RegisterDto) {
+    return await this.authService.register(body);
+  }
+
+  /**
+   * POST /auth/login - Đăng nhập
+   */
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() body: LoginDto) {
+    return await this.authService.login(body.email, body.password);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROTECTED ENDPOINTS (cần authentication)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /auth/me - Lấy thông tin user hiện tại
+   * Yêu cầu: Đã đăng nhập
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@CurrentUser() user: AuthenticatedUser) {
+    return {
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role,
+      },
+    };
+  }
+
+  /**
+   * POST /auth/validate - Validate token và trả về user info
+   * Dùng cho frontend để kiểm tra token còn hợp lệ không
+   */
+  @Post('validate')
+  @HttpCode(HttpStatus.OK)
+  async validateToken(@Headers('authorization') authHeader: string) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token không hợp lệ');
+    }
+
+    const token = authHeader.substring(7);
+    const user = await this.authService.validateToken(token);
+
+    return {
+      valid: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+    };
+  }
+
+  /**
+   * PUT /auth/change-password - Đổi mật khẩu
+   * Yêu cầu: Đã đăng nhập
+   */
+  @Put('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() body: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(
+      userId,
+      body.oldPassword,
+      body.newPassword,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEST ENDPOINTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /auth/customer-only-test - Test endpoint chỉ cho customer
+   */
+  @Get('customer-only-test')
+  @CustomerOnly()
+  async customerOnlyTest(@CurrentUser() user: AuthenticatedUser) {
+    return {
+      success: true,
+      message: '✅ Bạn đang truy cập với vai trò CUSTOMER',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
+
+  /**
+   * GET /auth/admin-only-test - Test endpoint chỉ cho admin
+   */
+  @Get('admin-only-test')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async adminOnlyTest(@CurrentUser() user: AuthenticatedUser) {
+    return {
+      success: true,
+      message: '✅ Bạn đang truy cập với vai trò ADMIN',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
+}
+
+
+
+################################################################################
+## FILE 6: order.service.ts
+## Path: backend/src/order/order.service.ts
+################################################################################
+
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { SupabaseService } from '../supabase.service';
+
+interface CreateOrderDto {
+  items: {
+    product_id: number;
+    variant_id?: number;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount?: number;
+  }[];
+
+  shipping_address: {
+    full_name: string;
+    phone: string;
+    address_line1: string;
+    ward?: string;
+    district?: string;
+    city: string;
+  };
+
+  subtotal: number;
+  discount_amount?: number;
+  shipping_fee?: number;
+  tax_amount?: number;
+  total_amount: number;
+
+  payment_method?: string;
+  coupon_code?: string;
+  customer_note?: string;
+}
+
+
+@Injectable()
+export class OrderService {
+  constructor(private readonly supabaseService: SupabaseService) {}
+
+  // Tạo mã đơn hàng unique
+  private generateOrderNumber(): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `GT${timestamp}${random}`;
+  }
+
+  /**
+   * Tạo đơn hàng mới - LUỒNG CHÍNH
+   */
+  async createOrder(userId: string, orderDto: CreateOrderDto) {
+    try {
+      const {
+        items,
+        shipping_address,
+        subtotal,
+        discount_amount = 0,
+        shipping_fee = 0,
+        tax_amount = 0,
+        total_amount,
+        payment_method,
+        coupon_code,
+        customer_note,
+      } = orderDto;
+
+      if (!items || items.length === 0) {
+        throw new BadRequestException('Giỏ hàng trống');
+      }
+
+      // ❌ XÓA: let subtotal = 0;
+      // ❌ XÓA: toàn bộ reduce + tính lại tiền
+
+      // 1️⃣ Generate order number
+      const orderNumber = this.generateOrderNumber();
+
+      // 2️⃣ Create order
+      const { data: orderData, error: orderError } =
+        await this.supabaseService.createFullOrder({
+          customer_id: userId,
+          order_number: orderNumber,
+          subtotal,
+          discount_amount,
+          shipping_fee,
+          // tax_amount,
+          total_amount,
+          payment_method,
+          // coupon_code,
+          customer_note,
+          shipping_full_name: shipping_address.full_name,
+          shipping_phone: shipping_address.phone,
+          shipping_address: shipping_address.address_line1,
+          shipping_ward: shipping_address.ward,
+          shipping_district: shipping_address.district,
+          shipping_city: shipping_address.city,
+        });
+
+      if (orderError || !orderData || orderData.length === 0) {
+        throw new BadRequestException(orderError?.message || 'Không thể tạo đơn hàng');
+      }
+
+      const orderId = orderData[0].order_id;
+
+      // 3️⃣ Create order items
+      for (const item of items) {
+        const { data: itemData, error: itemError } = await this.supabaseService.createFullOrderItem({
+          order_id: orderId,
+          product_id: item.product_id,
+          product_name: item.product_name,
+          sku: `SKU-${item.product_id}`,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          discount_amount: item.discount_amount || 0,
+          total_price: item.unit_price * item.quantity - (item.discount_amount || 0),
+        });
+
+        // THÊM LOG ĐỂ DEBUG
+        if (itemError) {
+          console.error('Order item insert error:', itemError);
+          throw new BadRequestException(`Không thể tạo order item: ${itemError.message}`);
+        }
+      }
+      
+
+      await this.supabaseService.clearShoppingCart(userId);
+
+      return {
+        success: true,
+        data: {
+          order_id: orderId,
+          order_number: orderNumber,
+          total_amount,
+        },
+      };
+    } catch (error: any) {
+      throw new BadRequestException(error.message || 'Lỗi tạo đơn hàng');
+    }
+  }
+
+
+  /**
+   * Lấy tất cả orders (ADMIN)
+   */
+  async getAllOrders() {
+    const { data, error } = await this.supabaseService.getOrders();
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  /**
+   * Lấy orders của customer
+   */
+  async getOrdersByUserId(userId: string) {
+    const { data, error } = await this.supabaseService.getOrdersByCustomer(userId as any);
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  /**
+   * Lấy chi tiết order theo ID
+   */
+  async getOrderById(orderId: string) {
+    const { data, error } = await this.supabaseService.getOrderWithItems(Number(orderId));
+    if (error) throw new BadRequestException(error.message);
+    return data;
+  }
+
+  /**
+   * Lấy chi tiết order theo Order Number
+   */
+  async getOrderByNumber(orderNumber: string) {
+    const { data, error } = await this.supabaseService.getOrderWithItemsByNumber(orderNumber);
+    if (error) throw new BadRequestException(error.message);
+    if (!data) throw new BadRequestException('Không tìm thấy đơn hàng');
+    return data;
+  }
+
+  /**
+   * Cập nhật trạng thái đơn hàng
+   */
+  async updateOrderStatus(orderId: string, newStatus: string) {
+    const { data, error } = await this.supabaseService.updateOrderStatus(Number(orderId), newStatus);
+    if (error) return { success: false, message: error.message };
+    return { success: true, data };
+  }
+
+  /**
+   * Cập nhật trạng thái thanh toán
+   */
+  async updatePaymentStatus(orderId: string, paymentStatus: string) {
+    const { data, error } = await this.supabaseService.updatePaymentStatus(Number(orderId), paymentStatus);
+    if (error) return { success: false, message: error.message };
+    return { success: true, data };
+  }
+}
+
+
+
+################################################################################
+## FILE 7: order.module.ts
+## Path: backend/src/order/order.module.ts
+################################################################################
+
+import { Module } from '@nestjs/common';
+import { OrderController } from './order.controller';
+import { OrderService } from './order.service';
+import { SupabaseService } from '../supabase.service';
+import { AuthModule } from '../auth/auth.module';
+
+@Module({
+  imports: [AuthModule], 
+  controllers: [OrderController],
+  providers: [OrderService, SupabaseService],
+  exports: [OrderService],
+})
+export class OrderModule {}
+
+
+
+
+################################################################################
+## FILE 8: order.controller.ts
+## Path: backend/src/order/order.controller.ts
+################################################################################
+
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
+import { OrderService } from './order.service';
+import { JwtAuthGuard, RolesGuard, CustomerGuard } from '../auth/guards';
+import { Roles, CurrentUser, CustomerOnly } from '../auth/decorators';
+import { UserRole } from '../common';
+import type { AuthenticatedUser } from '../common';
+
+@Controller('orders')
+export class OrderController {
+  constructor(private readonly orderService: OrderService) {}
+
+  /**
+   * POST /orders - Tạo đơn hàng mới
+   * Yêu cầu: CUSTOMER only (phải đăng nhập)
+   */
+  @Post()
+  @CustomerOnly()
+  async createOrder(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: {
+      items: {
+    product_id: number;
+    variant_id?: number;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount?: number;
+  }[];
+
+  shipping_address: {
+    full_name: string;
+    phone: string;
+    address_line1: string;
+    ward?: string;
+    district?: string;
+    city: string;
+  };
+
+  subtotal: number;
+  discount_amount?: number;
+  shipping_fee?: number;
+  tax_amount?: number;
+  total_amount: number;
+
+  payment_method?: string;
+  coupon_code?: string;
+  customer_note?: string;
+    },
+  ) {
+    if (!body.items || body.items.length === 0) {
+      throw new BadRequestException('Giỏ hàng trống');
+    }
+
+    return this.orderService.createOrder(user.id, body);
+  }
+
+  /**
+   * GET /orders - Lấy danh sách orders
+   * - Admin: xem tất cả
+   * - Customer: chỉ xem của mình
+   */
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getOrders(@CurrentUser() user: AuthenticatedUser) {
+    if (user.role === UserRole.ADMIN) {
+      return this.orderService.getAllOrders();
+    }
+    return this.orderService.getOrdersByUserId(user.id);
+  }
+
+  /**
+   * GET /orders/number/:orderNumber - Lấy order theo mã đơn hàng
+   * Dùng cho trang order success và order detail
+   */
+  @Get('number/:orderNumber')
+  async getOrderByNumber(@Param('orderNumber') orderNumber: string) {
+    return this.orderService.getOrderByNumber(orderNumber);
+  }
+
+  /**
+   * GET /orders/:id - Xem chi tiết đơn hàng theo ID
+   */
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async getOrderById(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') orderId: string,
+  ) {
+    const order = await this.orderService.getOrderById(orderId);
+
+    // Customer chỉ xem được order của mình
+    if (user.role === UserRole.CUSTOMER && order.customer_id !== user.id) {
+      throw new BadRequestException('Không có quyền xem đơn hàng này');
+    }
+
+    return order;
+  }
+
+  /**
+   * PUT /orders/:id/status - Cập nhật trạng thái (ADMIN only)
+   */
+  @Put(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async updateOrderStatus(
+    @Param('id') orderId: string,
+    @Body('status') status: string,
+  ) {
+    return this.orderService.updateOrderStatus(orderId, status);
+  }
+
+  /**
+   * PUT /orders/:id/payment - Cập nhật trạng thái thanh toán
+   */
+  @Put(':id/payment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async updatePaymentStatus(
+    @Param('id') orderId: string,
+    @Body('payment_status') paymentStatus: string,
+  ) {
+    return this.orderService.updatePaymentStatus(orderId, paymentStatus);
+  }
+
+  /**
+   * GET /orders/admin/all - Xem tất cả orders (ADMIN only)
+   */
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async getAllOrders() {
+    return this.orderService.getAllOrders();
+  }
+}
+
+
+
+################################################################################
+## FILE 9: shopping-cart.service.ts
+## Path: backend/src/shopping-cart/shopping-cart.service.ts
+################################################################################
+
+import { Injectable, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { SupabaseService } from '../supabase.service';
+
+@Injectable()
+export class ShoppingCartService {
+  private readonly logger = new Logger(ShoppingCartService.name);
+
+  constructor(private readonly supabaseService: SupabaseService) {}
+
+  /**
+   * Lấy giỏ hàng của user (có JOIN products)
+   */
+  async getCartByUserId(userId: string) {
+    this.logger.log(`Getting cart for user: ${userId}`);
+
+    const { data, error } = await this.supabaseService.getShoppingCartByUserId(userId);
+
+    if (error) {
+      this.logger.error(`Get cart error: ${error.message}`);
+      return { success: false, message: error.message, data: [] };
+    }
+
+    // Transform data để frontend dễ sử dụng
+    const cartItems = (data || []).map((item: any) => ({
+      cart_id: item.cart_id,
+      product_id: item.product_id,
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+      created_at: item.created_at,
+      // Flatten product info
+      product_name: item.products?.product_name || `Sản phẩm #${item.product_id}`,
+      price: item.products?.sale_price || item.products?.price || 0,
+      original_price: item.products?.price || 0,
+      image_url: item.products?.image_url || '/placeholder.png',
+      status: item.products?.status || 'active',
+    }));
+
+    return {
+      success: true,
+      data: cartItems,
+      total: cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0),
+      itemCount: cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
+    };
+  }
+
+  /**
+   * Thêm sản phẩm vào giỏ
+   */
+  async addToCart(userId: string, productId: number, quantity: number = 1, variantId?: number) {
+    this.logger.log(`Adding to cart: user=${userId}, product=${productId}, qty=${quantity}`);
+
+    if (quantity < 1) {
+      throw new BadRequestException('Số lượng phải >= 1');
+    }
+
+    // 1️⃣ Kiểm tra sản phẩm đã có trong giỏ chưa
+    const { data: existingItem, error: checkError } = 
+      await this.supabaseService.getCartItemByUserAndProduct(userId, productId);
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, không phải lỗi thực sự
+      this.logger.error(`Check existing error: ${checkError.message}`);
+      return { success: false, message: checkError.message };
+    }
+
+    // 2️⃣ Nếu đã tồn tại → cộng dồn quantity
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      const { data: updated, error: updateError } = 
+        await this.supabaseService.updateShoppingCartQuantity(existingItem.cart_id, newQuantity);
+
+      if (updateError) {
+        this.logger.error(`Update quantity error: ${updateError.message}`);
+        return { success: false, message: updateError.message };
+      }
+
+      this.logger.log(`Updated existing cart item: ${existingItem.cart_id}, new qty: ${newQuantity}`);
+
+      return {
+        success: true,
+        action: 'updated',
+        message: 'Đã cập nhật số lượng trong giỏ hàng',
+        data: updated,
+      };
+    }
+
+    // 3️⃣ Chưa tồn tại → insert mới
+    const { data: created, error: createError } = await this.supabaseService.createShoppingCartItem({
+      customer_id: userId,
+      product_id: productId,
+      variant_id: variantId || null,
+      quantity,
+    });
+
+    if (createError) {
+      this.logger.error(`Create cart item error: ${createError.message}`);
+      return { success: false, message: createError.message };
+    }
+
+    this.logger.log(`Created new cart item for product: ${productId}`);
+
+    return {
+      success: true,
+      action: 'created',
+      message: 'Đã thêm sản phẩm vào giỏ hàng',
+      data: created,
+    };
+  }
+
+  /**
+   * Cập nhật số lượng sản phẩm trong giỏ
+   */
+  async updateQuantity(userId: string, cartId: number, quantity: number) {
+    this.logger.log(`Updating quantity: cart=${cartId}, qty=${quantity}`);
+
+    // 1️⃣ Verify ownership
+    const { data: cartItem, error: getError } = await this.supabaseService.getCartItemById(cartId);
+
+    if (getError || !cartItem) {
+      throw new BadRequestException('Không tìm thấy item trong giỏ hàng');
+    }
+
+    if (cartItem.customer_id !== userId) {
+      throw new ForbiddenException('Bạn không có quyền sửa giỏ hàng này');
+    }
+
+    // 2️⃣ Nếu quantity = 0 → xóa item
+    if (quantity <= 0) {
+      return this.removeFromCart(userId, cartId);
+    }
+
+    // 3️⃣ Update quantity
+    const { data, error } = await this.supabaseService.updateShoppingCartQuantity(cartId, quantity);
+
+    if (error) {
+      this.logger.error(`Update error: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Đã cập nhật số lượng',
+      data,
+    };
+  }
+
+  /**
+   * Xóa sản phẩm khỏi giỏ
+   */
+  async removeFromCart(userId: string, cartId: number) {
+    this.logger.log(`Removing from cart: cart=${cartId}`);
+
+    // 1️⃣ Verify ownership
+    const { data: cartItem, error: getError } = await this.supabaseService.getCartItemById(cartId);
+
+    if (getError || !cartItem) {
+      throw new BadRequestException('Không tìm thấy item trong giỏ hàng');
+    }
+
+    if (cartItem.customer_id !== userId) {
+      throw new ForbiddenException('Bạn không có quyền xóa item này');
+    }
+
+    // 2️⃣ Delete
+    const { error } = await this.supabaseService.deleteShoppingCartItem(cartId);
+
+    if (error) {
+      this.logger.error(`Delete error: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Đã xóa sản phẩm khỏi giỏ hàng',
+    };
+  }
+
+  /**
+   * Xóa toàn bộ giỏ hàng
+   */
+  async clearCart(userId: string) {
+    const { error } = await this.supabaseService.clearShoppingCart(userId);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return {
+      success: true,
+      message: 'Đã xóa toàn bộ giỏ hàng',
+    };
+  }
+}
+
+
+
+################################################################################
+## FILE 10: shopping-cart.module.ts
+## Path: backend/src/shopping-cart/shopping-cart.module.ts
+################################################################################
+
+import { Module } from '@nestjs/common';
+import { ShoppingCartController } from './shopping-cart.controller';
+import { ShoppingCartService } from './shopping-cart.service';
+import { SupabaseService } from '../supabase.service';
+import { AuthModule } from '../auth/auth.module';
+
+@Module({
+  imports: [AuthModule],
+  controllers: [ShoppingCartController],
+  providers: [ShoppingCartService,SupabaseService],
+  exports: [ShoppingCartService],
+})
+export class ShoppingCartModule {}
+
+
+
+
+################################################################################
+## FILE 11: shopping-cart.controller.ts
+## Path: backend/src/shopping-cart/shopping-cart.controller.ts
+################################################################################
+
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ShoppingCartService } from './shopping-cart.service';
+import { CurrentUser, CustomerOnly } from '../auth/decorators';
+
+// DTOs
+class AddToCartDto {
+  productId: number;
+  quantity?: number;
+  variantId?: number;
+}
+
+class UpdateQuantityDto {
+  quantity: number;
+}
+
+@Controller('shopping-cart')
+export class ShoppingCartController {
+  constructor(private readonly cartService: ShoppingCartService) {}
+
+  /**
+   * GET /shopping-cart - Lấy giỏ hàng của user hiện tại
+   * Yêu cầu: Đăng nhập với role CUSTOMER
+   */
+  @Get()
+  @CustomerOnly()
+  async getCart(@CurrentUser('id') userId: string) {
+    return this.cartService.getCartByUserId(userId);
+  }
+
+  /**
+   * POST /shopping-cart - Thêm sản phẩm vào giỏ
+   * Body: { productId: number, quantity?: number, variantId?: number }
+   */
+  @Post()
+  @CustomerOnly()
+  @HttpCode(HttpStatus.CREATED)
+  async addToCart(
+    @CurrentUser('id') userId: string,
+    @Body() body: AddToCartDto,
+  ) {
+    return this.cartService.addToCart(
+      userId,
+      body.productId,
+      body.quantity || 1,
+      body.variantId,
+    );
+  }
+
+  /**
+   * PUT /shopping-cart/:id - Cập nhật số lượng
+   * Params: id = cart_id
+   * Body: { quantity: number }
+   */
+  @Put(':id')
+  @CustomerOnly()
+  async updateQuantity(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) cartId: number,
+    @Body() body: UpdateQuantityDto,
+  ) {
+    return this.cartService.updateQuantity(userId, cartId, body.quantity);
+  }
+
+  /**
+   * DELETE /shopping-cart/:id - Xóa item khỏi giỏ
+   */
+  @Delete(':id')
+  @CustomerOnly()
+  async removeFromCart(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseIntPipe) cartId: number,
+  ) {
+    return this.cartService.removeFromCart(userId, cartId);
+  }
+
+  /**
+   * DELETE /shopping-cart - Xóa toàn bộ giỏ hàng
+   */
+  @Delete()
+  @CustomerOnly()
+  async clearCart(@CurrentUser('id') userId: string) {
+    return this.cartService.clearCart(userId);
+  }
+}
+
+
+
+
+################################################################################
+## FILE 12: api-client.ts
+## Path: fontend/lib/api-client.ts
+################################################################################
+
+// ============ ADMIN DASHBOARD ============
+export const fetchAdminDashboard = async () => {
+  const response = await apiClient.get('/admin/dashboard');
+  return response.data;
+};
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:3001';
+
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// ============ USERS ============
+export const fetchUsers = async () => {
+  const response = await apiClient.get('/users');
+  return response.data;
+};
+
+// ============ PRODUCTS ============
+export const fetchProducts = async (limit = 10) => {
+  const response = await apiClient.get(`/products?limit=${limit}`);
+  return response.data;
+};
+
+export const createProduct = async (productData: any) => {
+  const response = await apiClient.post('/products', productData);
+  return response.data;
+};
+
+export const updateProduct = async (id: number, productData: any) => {
+  const response = await apiClient.put(`/products/${id}`, productData);
+  return response.data;
+};
+
+export const deleteProduct = async (id: number) => {
+  const response = await apiClient.delete(`/products/${id}`);
+  return response.data;
+};
+
+// ============ PRODUCTS BY SEASON ============
+export const fetchProductsBySeason = async (season: string) => {
+  const response = await apiClient.get(`/products/season/${season}`);
+  return response.data;
+};
+
+export const fetchSeasonProductCounts = async () => {
+  const response = await apiClient.get('/products/season/counts');
+  return response.data;
+};
+
+// ============ ORDERS ============
+export const fetchOrders = async (limit = 20) => {
+  const response = await apiClient.get(`/orders?limit=${limit}`);
+  return response.data;
+};
+
+// ============ CATEGORIES ============
+export const fetchCategories = async () => {
+  const response = await apiClient.get('/categories');
+  return response.data;
+};
+
+export const fetchCategoriesWithCount = async () => {
+  const response = await apiClient.get('/categories/with-count');
+  return response.data;
+};
+
+export const fetchRootCategories = async () => {
+  const response = await apiClient.get('/categories/root');
+  return response.data;
+};
+
+export const fetchCategoryById = async (id: number) => {
+  const response = await apiClient.get(`/categories/${id}`);
+  return response.data;
+};
+
+export const fetchCategoryBySlug = async (slug: string) => {
+  const response = await apiClient.get(`/categories/slug/${slug}`);
+  return response.data;
+};
+
+export const fetchChildCategories = async (parentId: number) => {
+  const response = await apiClient.get(`/categories/${parentId}/children`);
+  return response.data;
+};
+
+export const createCategory = async (categoryData: {
+  category_name: string;
+  category_slug: string;
+  description?: string;
+  parent_category_id?: number | null;
+  display_order?: number;
+  is_active?: boolean;
+}) => {
+  const response = await apiClient.post('/categories', categoryData);
+  return response.data;
+};
+
+export const updateCategory = async (id: number, categoryData: any) => {
+  const response = await apiClient.put(`/categories/${id}`, categoryData);
+  return response.data;
+};
+
+export const deleteCategory = async (id: number) => {
+  const response = await apiClient.delete(`/categories/${id}`);
+  return response.data;
+};
+
+// ============ AUTHENTICATION ============
+
+export const registerCustomer = async (customerData: {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+}) => {
+  try {
+    const response = await apiClient.post('/auth/register', {
+      email: customerData.email.trim().toLowerCase(),
+      password: customerData.password,
+      full_name: customerData.full_name.trim(),
+      phone: customerData.phone?.trim() || undefined,
+    });
+    return response.data;
+  } catch (error: any) {
+    // Trả về error message từ backend
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Đăng ký thất bại',
+    };
+  }
+};
+
+export const loginCustomer = async (email: string, password: string) => {
+  try {
+    const response = await apiClient.post('/auth/login', { 
+      email: email.trim().toLowerCase(), 
+      password 
+    });
+    return response.data;
+  } catch (error: any) {
+    // Trả về error message từ backend
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Đăng nhập thất bại',
+    };
+  }
+};
+
+export const validateToken = async (token: string) => {
+  try {
+    const response = await apiClient.post('/auth/validate', null, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    return {
+      valid: false,
+      message: error.response?.data?.message || 'Token không hợp lệ',
+    };
+  }
+};
+
+export const changePassword = async (oldPassword: string, newPassword: string) => {
+  try {
+    const response = await apiClient.put('/auth/change-password', {
+      oldPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Đổi mật khẩu thất bại',
+    };
+  }
+};
+// ============ REVIEWS ============
+export const fetchAllReviews = async (limit = 50) => {
+  const response = await apiClient.get(`/reviews?limit=${limit}`);
+  return response.data;
+};
+
+export const fetchProductReviews = async (productId: number) => {
+  const response = await apiClient.get(`/reviews/product/${productId}`);
+  return response.data;
+};
+
+export const createReview = async (reviewData: {
+  product_id: number;
+  customer_id?: number;
+  customer_name: string;
+  customer_email?: string;
+  rating: number;
+  review_title?: string;
+  review_text: string;
+}) => {
+  const response = await apiClient.post('/reviews', reviewData);
+  return response.data;
+};
+
+export const approveReview = async (reviewId: number, isApproved: boolean) => {
+  const response = await apiClient.put(`/reviews/${reviewId}/approve`, { is_approved: isApproved });
+  return response.data;
+};
+
+export const deleteReview = async (reviewId: number) => {
+  const response = await apiClient.delete(`/reviews/${reviewId}`);
+  return response.data;
+};
+
+// ============ CONTACT MESSAGES ============
+export const fetchAllContacts = async (limit = 50) => {
+  const response = await apiClient.get(`/contacts?limit=${limit}`);
+  return response.data;
+};
+
+export const createContactMessage = async (messageData: {
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+}) => {
+  const response = await apiClient.post('/contacts', messageData);
+  return response.data;
+};
+
+export const updateContactStatus = async (id: number, status: string) => {
+  const response = await apiClient.put(`/contacts/${id}/status`, { status });
+  return response.data;
+};
+
+export const deleteContact = async (id: number) => {
+  const response = await apiClient.delete(`/contacts/${id}`);
+  return response.data;
+};
+
+// ============ PAYMENT / MOMO ============
+export const createMomoPayment = async (data: {
+  amount: string | number;
+  orderInfo?: string;
+  orderId?: string;
+  redirectUrl?: string;
+  ipnUrl?: string;
+  extraData?: string;
+}) => {
+  const response = await apiClient.post('/payment/momo', {
+    amount: String(data.amount),
+    orderInfo: data.orderInfo || 'Thanh toán đơn hàng GoatTech',
+    orderId: data.orderId,
+    redirectUrl: data.redirectUrl,
+    ipnUrl: data.ipnUrl,
+    extraData: data.extraData || '',
+  });
+  return response.data;
+};
+
+export const checkMomoPaymentStatus = async (orderId: string) => {
+  const response = await apiClient.post('/payment/momo/check-status', { orderId });
+  return response.data;
+};
+
+export const refundMomoPayment = async (data: {
+  orderId: string;
+  transId: string;
+  amount: string | number;
+  description?: string;
+}) => {
+  const response = await apiClient.post('/payment/momo/refund', {
+    orderId: data.orderId,
+    transId: data.transId,
+    amount: String(data.amount),
+    description: data.description || 'Hoàn tiền đơn hàng',
+  });
+  return response.data;
+};
+
+// ============ COLLECTIONS ============
+export const fetchAllCollections = async () => {
+  const response = await apiClient.get('/collections');
+  return response.data;
+};
+
+export const fetchCollectionsByType = async (type: string) => {
+  const response = await apiClient.get(`/collections/type/${type}`);
+  return response.data;
+};
+
+export const fetchCollectionBySlug = async (slug: string) => {
+  const response = await apiClient.get(`/collections/slug/${slug}`);
+  return response.data;
+};
+
+export const fetchCollectionProductCounts = async () => {
+  const response = await apiClient.get('/collections/counts');
+  return response.data;
+};
+
+export const fetchProductsByCollection = async (slug: string) => {
+  const response = await apiClient.get(`/collections/slug/${slug}/products`);
+  return response.data;
+};
+
+export const fetchProductCollections = async (productId: number) => {
+  const response = await apiClient.get(`/collections/product/${productId}`);
+  return response.data;
+};
+
+export const addProductToCollection = async (productId: number, collectionId: number) => {
+  const response = await apiClient.post('/collections/product', { productId, collectionId });
+  return response.data;
+};
+
+export const updateProductCollections = async (productId: number, collectionIds: number[]) => {
+  const response = await apiClient.put(`/collections/product/${productId}`, { collectionIds });
+  return response.data;
+};
+
+export const removeProductFromCollection = async (productId: number, collectionId: number) => {
+  const response = await apiClient.delete('/collections/product', { 
+    data: { productId, collectionId } 
+  });
+  return response.data;
+};
+
+export const createCollection = async (collectionData: {
+  collection_name: string;
+  collection_slug: string;
+  collection_description?: string;
+  collection_image?: string;
+  collection_gradient?: string;
+  collection_icon?: string;
+  collection_type?: string;
+  display_order?: number;
+}) => {
+  const response = await apiClient.post('/collections', collectionData);
+  return response.data;
+};
+
+export const updateCollection = async (id: number, collectionData: any) => {
+  const response = await apiClient.put(`/collections/${id}`, collectionData);
+  return response.data;
+};
+
+export const deleteCollection = async (id: number) => {
+  const response = await apiClient.delete(`/collections/${id}`);
+  return response.data;
+};
+
+// ============ ERROR HANDLING ============
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  },
+);
+// ============ SHOPPING_CART ============
+/**
+ * Lấy giỏ hàng của user hiện tại
+ * Yêu cầu: Phải đăng nhập (có token)
+ */
+export const fetchShoppingCart = async () => {
+  try {
+    console.log('console log đang được gọi từ fetchShoppingCart');
+    // Lấy token từ localStorage
+    const customerData = localStorage.getItem('customer');
+    console.log(customerData);
+    console.log(getAuthHeaders());
+    
+    if (!customerData) {
+      return { success: false, message: 'Chưa đăng nhập', data: [] };
+    }
+    const customer = JSON.parse(customerData);
+    console.log('Customer ID (UUID):', customer.id);
+    
+    const response = await apiClient.get('/shopping-cart', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch cart error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể tải giỏ hàng',
+      data: [],
+    };
+  }
+};
+
+/**
+ * Thêm sản phẩm vào giỏ
+ */
+export const addToShoppingCart = async (data: {
+  productId: number;
+  // quantity: number;
+  quantity:1 ;
+  variantId?: number;
+}) => {
+  try {
+    const response = await apiClient.post(
+      '/shopping-cart',
+      {
+        productId: data.productId,
+        // quantity: data.quantity || 1,
+        quantity: 1,
+        variantId: data.variantId || null,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Add to cart error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể thêm vào giỏ hàng',
+    };
+  }
+};
+
+/**
+ * Cập nhật số lượng
+ */
+export const updateShoppingCart = async (cartId: number, quantity: number) => {
+  try {
+    const response = await apiClient.put(
+      `/shopping-cart/${cartId}`,
+      { quantity },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Update cart error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể cập nhật',
+    };
+  }
+};
+
+/**
+ * Xóa item khỏi giỏ
+ */
+export const deleteShoppingCart = async (cartId: number) => {
+  try {
+    const response = await apiClient.delete(`/shopping-cart/${cartId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Delete cart item error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể xóa',
+    };
+  }
+};
+
+/**
+ * Xóa toàn bộ giỏ hàng
+ */
+export const clearShoppingCart = async () => {
+  try {
+    const response = await apiClient.delete('/shopping-cart', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Clear cart error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể xóa giỏ hàng',
+    };
+  }
+};
+
+/**
+ * Helper: Lấy auth headers
+ */
+const getAuthHeaders = () => {
+  const customerData = localStorage.getItem('customer');
+  if (!customerData) return {};
+  console.log('🔍 getAuthHeaders called');
+  console.log('📦 customerData raw:', customerData);
+  try {
+    const customer = JSON.parse(customerData);
+    // Nếu có access_token thì dùng, không thì dùng id như là simple auth
+    console.log('✅ Using Authorization Bearer token',customer.access_token);
+    if (customer.access_token) {
+      return { Authorization: `Bearer ${customer.access_token}` };
+    }
+    // Fallback: gửi user-id trong header (backend cần xử lý)
+    return { 'X-User-Id': customer.id };
+  } catch {
+    return {};
+  }
+};
+
+// ============ ORDERS - ENHANCED ============
+
+/**
+ * Tạo đơn hàng mới
+ */
+export const createOrder = async (orderData: {
+  items: {
+    product_id: number;
+    variant_id?: number;
+    product_name: string;
+    variant_name?: string;
+    sku?: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount?: number;
+  }[];
+  shipping_address?: {
+    full_name: string;
+    phone: string;
+    address_line1: string;
+    ward?: string;
+    district?: string;
+    city: string;
+  };
+  subtotal:number,
+  payment_method?: string;
+  coupon_code?: string;
+  customer_note?: string;
+}) => {
+  try {
+    const response = await apiClient.post('/orders', orderData, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Create order error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể tạo đơn hàng',
+    };
+  }
+};
+
+/**
+ * Lấy đơn hàng theo order number
+ */
+export const fetchOrderByNumber = async (orderNumber: string) => {
+  try {
+    const response = await apiClient.get(`/orders/number/${orderNumber}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch order error:', error);
+    return null;
+  }
+};
+
+/**
+ * Lấy danh sách đơn hàng của customer
+ */
+export const fetchMyOrders = async () => {
+  try {
+    const response = await apiClient.get('/orders', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch orders error:', error);
+    return [];
+  }
+};
+import { createBrowserClient } from '@supabase/ssr';
+const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
+
+client.interceptors.request.use(async (config) => {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default client;
+
+
+
+
+################################################################################
+## FILE 13: page.tsx
+## Path: fontend/src/app/(public)/checkout/page.tsx
+################################################################################
+
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  fetchShoppingCart,
+  createOrder,
+  clearShoppingCart,
+} from '@/lib/api-client';
+import {
+  ArrowLeft,
+  CreditCard,
+  Truck,
+  MapPin,
+  Phone,
+  User,
+  FileText,
+  ShoppingBag,
+  Shield,
+  AlertCircle,
+  Check,
+} from 'lucide-react';
+
+interface CartItem {
+  cartid: number;
+  productid: number;
+  variantid?: number;
+  quantity: number;
+  productname: string;
+  price: number;
+  originalprice?: number;
+  imageurl?: string;
+}
+
+interface ShippingAddress {
+  fullname: string;
+  phone: string;
+  addressline1: string;
+  ward: string;
+  district: string;
+  city: string;
+}
+
+export default function CheckoutPage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // States
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [subtotal, setSubtotal] = useState(0);
+  const [shippingFee, setShippingFee] = useState(30000);
+  const [discount, setDiscount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [couponCode, setCouponCode] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Shipping address form
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    fullname: '',
+    phone: '',
+    addressline1: '',
+    ward: '',
+    district: '',
+    city: '',
+  });
+
+  // Load cart data
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.push('/login?redirect=checkout');
+      return;
+    }
+
+    const loadCart = async () => {
+      setLoading(true);
+      try {
+        const res = await fetchShoppingCart();
+
+        if (!res.success || !res.data || res.data.length === 0) {
+          alert('Giỏ hàng trống!');
+          router.push('/shopping-cart');
+          return;
+        }
+
+        setCartItems(res.data);
+        // Calculate subtotal
+        const total = res.data.reduce((sum: number, item: CartItem) => {
+          return sum + item.price * item.quantity;
+        }, 0);
+
+        setSubtotal(total);
+
+        // Free shipping for orders >= 500k
+        setShippingFee(total >= 500000 ? 0 : 30000);
+
+        // Pre-fill user info
+        if (user) {
+          setShippingAddress((prev) => ({
+            ...prev,
+            fullname: user.fullname || user.firstname || '',
+            phone: user.phone || '',
+          }));
+        }
+      } catch (error) {
+        console.error('Load cart error:', error);
+        alert('Lỗi khi tải giỏ hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCart();
+  }, [authLoading, isAuthenticated, router, user]);
+
+  // Handle input changes
+  const handleAddressChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setShippingAddress((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Clear error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
+  };
+
+  // Validate form - CẢI THIỆN
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    let isValid = true;
+
+    if (!shippingAddress.fullname.trim()) {
+      errors.fullname = 'Vui lòng nhập họ tên';
+      isValid = false;
+    }
+
+    if (!shippingAddress.phone.trim()) {
+      errors.phone = 'Vui lòng nhập số điện thoại';
+      isValid = false;
+    } else if (!/^[0-9]{10,11}$/.test(shippingAddress.phone.trim())) {
+      errors.phone = 'Số điện thoại không hợp lệ (10-11 chữ số)';
+      isValid = false;
+    }
+
+    if (!shippingAddress.addressline1.trim()) {
+      errors.addressline1 = 'Vui lòng nhập địa chỉ chi tiết';
+      isValid = false;
+    }
+
+    if (!shippingAddress.district.trim()) {
+      errors.district = 'Vui lòng nhập quận/huyện';
+      isValid = false;
+    }
+
+    if (!shippingAddress.city.trim()) {
+      errors.city = 'Vui lòng nhập tỉnh/thành phố';
+      isValid = false;
+    }
+
+    setValidationErrors(errors);
+
+    if (!isValid) {
+      // Scroll to first error
+      const firstErrorField = document.querySelector('[data-error]');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    return isValid;
+  };
+
+  // Submit order - CHÍNH
+  const handleCheckout = async () => {
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+
+    try {
+      const orderData = {
+        // ✅ items - ĐÚNG KEY BACKEND
+        items: cartItems.map(item => ({
+          product_id: item.productid,//
+          variant_id: item.variantid,//
+          product_name: item.productname || item.products?.product_name || `Product #${item.productid}`,
+          quantity: item.quantity,//
+          unit_price: item.price || item.products?.sale_price || item.products?.price || 0,
+          discount_amount: 0,//
+        })),
+
+        // ✅ shipping_address - ĐÚNG STRUCT
+        shipping_address: {
+          full_name: shippingAddress.fullname,//
+          phone: shippingAddress.phone,//
+          address_line1: shippingAddress.addressline1,//
+          ward: shippingAddress.ward ||  undefined,///
+          district: shippingAddress.district,//
+          city: shippingAddress.city,//
+        },
+
+        // ✅ order financials (FULL TABLE)
+        subtotal:subtotal,
+        // discount_amount: discount,
+        // shipping_fee: shippingFee,
+        // tax_amount: 0,
+        total_amount: subtotal - discount + shippingFee,
+
+        // ✅ meta
+        payment_method: paymentMethod,
+        coupon_code: couponCode ||  undefined,
+        customer_note: customerNote ||  undefined,
+      };
+
+      const result = await createOrder(orderData);
+
+      if (!result.success) throw new Error(result.message);
+
+      const orderNumber = result.data.order_number;
+      const totalAmount = result.data.total_amount;
+
+      await clearShoppingCart();
+
+      router.push(`/order/${orderNumber}?total=${totalAmount}`);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi tạo đơn hàng');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+  // Calculate total
+  const totalAmount = subtotal - discount + shippingFee;
+
+  // Format price
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('vi-VN');
+  };
+
+  // Loading state
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải thông tin thanh toán...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            href="/shopping-cart"
+            className="flex items-center gap-2 text-gray-600 hover:text-pink-600 mb-4"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Quay lại giỏ hàng
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Thanh toán</h1>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Forms */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Shipping Address */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <MapPin className="w-5 h-5 text-pink-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Địa chỉ giao hàng</h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Fullname */}
+                <div data-error={validationErrors.fullname ? 'true' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <User className="w-4 h-4 inline mr-1" />
+                    Họ và tên
+                  </label>
+                  <input
+                    type="text"
+                    name="fullname"
+                    value={shippingAddress.fullname}
+                    onChange={handleAddressChange}
+                    className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                      validationErrors.fullname
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
+                    placeholder="Nguyễn Văn A"
+                  />
+                  {validationErrors.fullname && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationErrors.fullname}
+                    </p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div data-error={validationErrors.phone ? 'true' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Phone className="w-4 h-4 inline mr-1" />
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={shippingAddress.phone}
+                    onChange={handleAddressChange}
+                    className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                      validationErrors.phone
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
+                    placeholder="0901234567"
+                  />
+                  {validationErrors.phone && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationErrors.phone}
+                    </p>
+                  )}
+                </div>
+
+                {/* Address */}
+                <div
+                  className="md:col-span-2"
+                  data-error={validationErrors.addressline1 ? 'true' : ''}
+                >
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa chỉ chi tiết
+                  </label>
+                  <input
+                    type="text"
+                    name="addressline1"
+                    value={shippingAddress.addressline1}
+                    onChange={handleAddressChange}
+                    className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                      validationErrors.addressline1
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
+                    placeholder="Số nhà, tên đường..."
+                  />
+                  {validationErrors.addressline1 && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationErrors.addressline1}
+                    </p>
+                  )}
+                </div>
+
+                {/* Ward */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phường/Xã (tùy chọn)
+                  </label>
+                  <input
+                    type="text"
+                    name="ward"
+                    value={shippingAddress.ward}
+                    onChange={handleAddressChange}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Phường 1"
+                  />
+                </div>
+
+                {/* District */}
+                <div data-error={validationErrors.district ? 'true' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quận/Huyện
+                  </label>
+                  <input
+                    type="text"
+                    name="district"
+                    value={shippingAddress.district}
+                    onChange={handleAddressChange}
+                    className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                      validationErrors.district
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
+                    placeholder="Quận 1"
+                  />
+                  {validationErrors.district && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationErrors.district}
+                    </p>
+                  )}
+                </div>
+
+                {/* City */}
+                <div data-error={validationErrors.city ? 'true' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tỉnh/Thành phố
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    value={shippingAddress.city}
+                    onChange={handleAddressChange}
+                    className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent ${
+                      validationErrors.city
+                        ? 'border-red-500'
+                        : 'border-gray-300'
+                    }`}
+                    placeholder="TP. Hồ Chí Minh"
+                  />
+                  {validationErrors.city && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationErrors.city}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Phương thức thanh toán</h2>
+              </div>
+
+              <div className="space-y-3">
+                {/* COD */}
+                <label className="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                  style={{
+                    borderColor: paymentMethod === 'cod' ? '#ec4899' : '#d1d5db',
+                    backgroundColor: paymentMethod === 'cod' ? '#fce7f3' : 'white',
+                  }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cod"
+                    checked={paymentMethod === 'cod'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-5 h-5 text-pink-600"
+                  />
+                  <Truck className="w-6 h-6 text-gray-600" />
+                  <div>
+                    <p className="font-medium">Thanh toán khi nhận hàng (COD)</p>
+                    <p className="text-sm text-gray-500">
+                      Thanh toán bằng tiền mặt khi nhận hàng
+                    </p>
+                  </div>
+                </label>
+
+                {/* MoMo */}
+                <label className="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                  style={{
+                    borderColor: paymentMethod === 'momo' ? '#ec4899' : '#d1d5db',
+                    backgroundColor: paymentMethod === 'momo' ? '#fce7f3' : 'white',
+                  }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="momo"
+                    checked={paymentMethod === 'momo'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-5 h-5 text-pink-600"
+                  />
+                  <div className="w-6 h-6 bg-pink-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                    M
+                  </div>
+                  <div>
+                    <p className="font-medium">Ví MoMo</p>
+                    <p className="text-sm text-gray-500">
+                      Thanh toán qua ví điện tử MoMo
+                    </p>
+                  </div>
+                </label>
+
+                {/* Bank Transfer */}
+                <label className="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                  style={{
+                    borderColor: paymentMethod === 'bank' ? '#ec4899' : '#d1d5db',
+                    backgroundColor: paymentMethod === 'bank' ? '#fce7f3' : 'white',
+                  }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="bank"
+                    checked={paymentMethod === 'bank'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-5 h-5 text-pink-600"
+                  />
+                  <CreditCard className="w-6 h-6 text-gray-600" />
+                  <div>
+                    <p className="font-medium">Chuyển khoản ngân hàng</p>
+                    <p className="text-sm text-gray-500">
+                      Chuyển khoản qua tài khoản ngân hàng
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Customer Note */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                </div>
+                <h2 className="text-xl font-semibold">Ghi chú đơn hàng</h2>
+              </div>
+              <textarea
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+                rows={3}
+                placeholder="Ghi chú thêm về đơn hàng tùy chọn..."
+              ></textarea>
+            </div>
+          </div>
+
+          {/* Right Column - Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-4">
+              <h2 className="text-xl font-semibold mb-6">Đơn hàng của bạn</h2>
+
+              {/* Cart Items */}
+              <div className="space-y-4 max-h-64 overflow-y-auto mb-6 pb-4 border-b">
+                {cartItems.map((item) => (
+                  <div key={item.cartid} className="flex gap-3">
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.imageurl || '/placeholder.png'}
+                        alt={item.productname}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm line-clamp-2">
+                        {item.productname}
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        x{item.quantity}
+                      </p>
+                      <p className="font-semibold text-pink-600 whitespace-nowrap">
+                        {formatPrice(item.price * item.quantity)}₫
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div className="space-y-3">
+                <div className="flex justify-between text-gray-600">
+                  <span>Tạm tính</span>
+                  <span>{formatPrice(subtotal)}₫</span>
+                </div>
+
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Giảm giá</span>
+                    <span>-{formatPrice(discount)}₫</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-gray-600">
+                  <span>Phí vận chuyển</span>
+                  <span>
+                    {shippingFee === 0 ? 'Miễn phí' : formatPrice(shippingFee) + '₫'}
+                  </span>
+                </div>
+
+                <div className="border-t pt-4 flex justify-between font-bold text-lg">
+                  <span>Tổng cộng</span>
+                  <span className="text-pink-600">{formatPrice(totalAmount)}₫</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={handleCheckout}
+                disabled={submitting || cartItems.length === 0}
+                className="w-full mt-6 bg-gradient-to-r from-pink-600 to-pink-500 text-white py-3 rounded-xl font-bold hover:from-pink-700 hover:to-pink-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    Xác nhận đơn hàng
+                  </>
+                )}
+              </button>
+
+              {/* Security Badge */}
+              <div className="mt-4 flex items-center justify-center gap-2 text-gray-500 text-sm">
+                <Shield className="w-4 h-4" />
+                <span>Thanh toán an toàn</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+

@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { RoleGuard } from '@/components/guards/RoleGuard';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
-
+import { useAuth} from '@/contexts/AuthContext';
+// import {  UserRole } from '@/contexts/AuthContext';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function CheckoutContent() {

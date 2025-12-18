@@ -158,7 +158,7 @@ return (
                     </Link>
 
                     <Link
-                      href="/orders"
+                      href="/order"
                       className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-pink-100 hover:text-pink-600"
                       onClick={() => setShowDropdown(false)}
                     >

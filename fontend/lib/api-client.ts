@@ -375,10 +375,13 @@ export const fetchShoppingCart = async () => {
     const customerData = localStorage.getItem('customer');
     console.log(customerData);
     console.log(getAuthHeaders());
+    
     if (!customerData) {
       return { success: false, message: 'Chưa đăng nhập', data: [] };
     }
-
+    const customer = JSON.parse(customerData);
+    console.log('Customer ID (UUID):', customer.id);
+    
     const response = await apiClient.get('/shopping-cart', {
       headers: getAuthHeaders(),
     });
@@ -505,7 +508,76 @@ const getAuthHeaders = () => {
   }
 };
 
+// ============ ORDERS - ENHANCED ============
 
+/**
+ * Tạo đơn hàng mới
+ */
+export const createOrder = async (orderData: {
+  items: {
+    product_id: number;
+    variant_id?: number;
+    product_name: string;
+    variant_name?: string;
+    sku?: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount?: number;
+  }[];
+  shipping_address?: {
+    full_name: string;
+    phone: string;
+    address_line1: string;
+    ward?: string;
+    district?: string;
+    city: string;
+  };
+  subtotal:number,
+  payment_method?: string;
+  coupon_code?: string;
+  customer_note?: string;
+}) => {
+  try {
+    const response = await apiClient.post('/orders', orderData, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Create order error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Không thể tạo đơn hàng',
+    };
+  }
+};
+
+/**
+ * Lấy đơn hàng theo order number
+ */
+export const fetchOrderByNumber = async (orderNumber: string) => {
+  try {
+    const response = await apiClient.get(`/orders/number/${orderNumber}`);
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch order error:', error);
+    return null;
+  }
+};
+
+/**
+ * Lấy danh sách đơn hàng của customer
+ */
+export const fetchMyOrders = async () => {
+  try {
+    const response = await apiClient.get('/orders', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch orders error:', error);
+    return [];
+  }
+};
 import { createBrowserClient } from '@supabase/ssr';
 const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
 

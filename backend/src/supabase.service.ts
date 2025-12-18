@@ -215,7 +215,215 @@ export class SupabaseService {
       .select();
     return { data, error };
   }
+  // ============ ORDERS - ENHANCED ============
 
+// Tạo order với đầy đủ thông tin
+async createFullOrder(orderData: {
+  customer_id: string;
+  order_number: string;
+  subtotal: number;
+  discount_amount?: number;
+  shipping_fee?: number;
+  total_amount: number;
+  payment_method?: string;
+  shipping_address_id?: number;
+  customer_note?: string;
+  shipping_full_name?: string;
+  shipping_phone?: string;
+  shipping_address?: string;
+  shipping_ward?: string;
+  shipping_district?: string;
+  shipping_city?: string;
+}) {
+  const { data, error } = await this.supabase
+    .from('orders')
+    .insert([{
+      ...orderData,
+      order_status: 'pending',
+      payment_status: 'unpaid',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }])
+    .select();
+  return { data, error };
+}
+
+// Tạo order item với đầy đủ thông tin
+async createFullOrderItem(itemData: {
+  order_id: number;
+  product_id: number;
+  //variant_id?: number;
+  product_name: string;
+  variant_name?: string;
+  sku: string;
+  quantity: number;
+  unit_price: number;
+  discount_amount?: number;
+  total_price: number;
+}) {
+  const { data, error } = await this.supabase
+    .from('order_items')
+    .insert([itemData])
+    .select();
+  return { data, error };
+}
+
+// Lấy order theo order_number
+async getOrderByNumber(orderNumber: string) {
+  const { data, error } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_number', orderNumber)
+    .single();
+  return { data, error };
+}
+
+// Lấy order với items
+async getOrderWithItems(orderId: number) {
+  const { data: order, error: orderError } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_id', orderId)
+    .single();
+
+  if (orderError) return { data: null, error: orderError };
+
+  const { data: items, error: itemsError } = await this.supabase
+    .from('order_items')
+    .select(`
+      *,
+      products (
+        product_id,
+        product_name,
+        product_slug,
+        price,
+        sale_price
+      )
+    `)
+    .eq('order_id', orderId);
+
+  if (itemsError) return { data: order, error: itemsError };
+
+  return { 
+    data: { ...order, items: items || [] }, 
+    error: null 
+  };
+}
+
+// Lấy order với items theo order_number
+async getOrderWithItemsByNumber(orderNumber: string) {
+  const { data: order, error: orderError } = await this.supabase
+    .from('orders')
+    .select('*')
+    .eq('order_number', orderNumber)
+    .single();
+
+  if (orderError || !order) return { data: null, error: orderError };
+
+  const { data: items, error: itemsError } = await this.supabase
+    .from('order_items')
+    .select(`
+      *,
+      products (
+        product_id,
+        product_name,
+        product_slug
+      )
+    `)
+    .eq('order_id', order.order_id);
+
+  return { 
+    data: { ...order, items: items || [] }, 
+    error: itemsError 
+  };
+}
+
+// ============ COLLECTIONS - ENHANCED ============
+
+// Lấy tất cả collections (từ design_collections)
+async getAllDesignCollections() {
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
+  return { data, error };
+}
+
+// Lấy collection theo type
+async getDesignCollectionsByType(type: string) {
+  // type: 'normal' hoặc 'seasonal'
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('is_active', true)
+    .ilike('collection_name', type === 'seasonal' ? '%Noel%|%Valentine%|%Tết%' : '%')
+    .order('display_order', { ascending: true });
+  return { data, error };
+}
+
+// Lấy collection theo slug
+async getDesignCollectionBySlug(slug: string) {
+  const { data, error } = await this.supabase
+    .from('design_collections')
+    .select('*')
+    .eq('collection_slug', slug)
+    .eq('is_active', true)
+    .single();
+  return { data, error };
+}
+
+// Lấy sản phẩm trong collection
+async getProductsByDesignCollection(collectionId: number) {
+  const { data: pcData, error: pcError } = await this.supabase
+    .from('product_collections')
+    .select('product_id')
+    .eq('collection_id', collectionId)
+    .order('display_order', { ascending: true });
+
+  if (pcError || !pcData || pcData.length === 0) {
+    return { data: [], error: pcError };
+  }
+
+  const productIds = pcData.map(pc => pc.product_id);
+
+  const { data: products, error: prodError } = await this.supabase
+    .from('products')
+    .select(`
+      *,
+      product_images (
+        image_url,
+        is_primary
+      )
+    `)
+    .in('product_id', productIds)
+    .eq('status', 'active');
+
+  return { data: products || [], error: prodError };
+}
+
+// Đếm sản phẩm trong mỗi collection
+async getDesignCollectionProductCounts() {
+  const { data: collections, error: colError } = await this.supabase
+    .from('design_collections')
+    .select('collection_id, collection_name, collection_slug')
+    .eq('is_active', true);
+
+  if (colError) return { data: null, error: colError };
+
+  const counts: Record<string, number> = {};
+  
+  for (const col of collections || []) {
+    const { data: pcData } = await this.supabase
+      .from('product_collections')
+      .select('product_id', { count: 'exact' })
+      .eq('collection_id', col.collection_id);
+    
+    counts[col.collection_slug] = pcData?.length || 0;
+  }
+
+  return { data: counts, error: null };
+}
   // ============ PAYMENT TRANSACTIONS ============
   async createPaymentTransaction(transactionData: any) {
     const { data, error } = await this.supabase
