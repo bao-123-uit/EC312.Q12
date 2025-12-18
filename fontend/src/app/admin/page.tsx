@@ -28,7 +28,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts, fetchOrders, fetchUsers, fetchCategories, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllReviews, approveReview, deleteReview, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard } from '@/lib/api-client';
+import { fetchProducts, fetchOrders, fetchAllOrdersAdmin, fetchUsers, fetchCategories, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllReviews, approveReview, deleteReview, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard } from '@/lib/api-client';
 
 interface Collection {
   collection_id: number;
@@ -203,7 +203,7 @@ const AdminDashboard: React.FC = () => {
         }
       }
       if (activeTab === 'orders' || activeTab === 'dashboard') {
-        const data = await fetchOrders(50);
+        const data = await fetchAllOrdersAdmin();
         setOrders(Array.isArray(data) ? data : []);
       }
       if (activeTab === 'customers' || activeTab === 'dashboard') {

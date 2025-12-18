@@ -26,6 +26,16 @@ export const fetchProducts = async (limit = 10) => {
   return response.data;
 };
 
+export const fetchProductById = async (id: number) => {
+  try {
+    const response = await apiClient.get(`/products/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Fetch product by id error:', error);
+    return null;
+  }
+};
+
 export const createProduct = async (productData: any) => {
   const response = await apiClient.post('/products', productData);
   return response.data;
@@ -54,8 +64,45 @@ export const fetchSeasonProductCounts = async () => {
 
 // ============ ORDERS ============
 export const fetchOrders = async (limit = 20) => {
-  const response = await apiClient.get(`/orders?limit=${limit}`);
-  return response.data;
+  try {
+    // Gửi token nếu có
+    const customerData = localStorage.getItem('customer');
+    const headers: Record<string, string> = {};
+    
+    if (customerData) {
+      const customer = JSON.parse(customerData);
+      if (customer.access_token) {
+        headers['Authorization'] = `Bearer ${customer.access_token}`;
+      }
+    }
+    
+    const response = await apiClient.get(`/orders?limit=${limit}`, { headers });
+    return response.data;
+  } catch (error: any) {
+    console.error('fetchOrders error:', error);
+    return [];
+  }
+};
+
+// Lấy tất cả orders cho admin
+export const fetchAllOrdersAdmin = async () => {
+  try {
+    const customerData = localStorage.getItem('customer');
+    const headers: Record<string, string> = {};
+    
+    if (customerData) {
+      const customer = JSON.parse(customerData);
+      if (customer.access_token) {
+        headers['Authorization'] = `Bearer ${customer.access_token}`;
+      }
+    }
+    
+    const response = await apiClient.get('/orders/admin/all', { headers });
+    return response.data;
+  } catch (error: any) {
+    console.error('fetchAllOrdersAdmin error:', error);
+    return [];
+  }
 };
 
 // ============ CATEGORIES ============
@@ -116,14 +163,20 @@ export const deleteCategory = async (id: number) => {
 export const registerCustomer = async (customerData: {
   email: string;
   password: string;
-  full_name: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
   phone?: string;
 }) => {
   try {
+    // Ghép first_name + last_name thành full_name nếu cần
+    const fullName = customerData.full_name || 
+      `${customerData.first_name || ''} ${customerData.last_name || ''}`.trim();
+    
     const response = await apiClient.post('/auth/register', {
       email: customerData.email.trim().toLowerCase(),
       password: customerData.password,
-      full_name: customerData.full_name.trim(),
+      full_name: fullName,
       phone: customerData.phone?.trim() || undefined,
     });
     return response.data;
@@ -578,6 +631,80 @@ export const fetchMyOrders = async () => {
     return [];
   }
 };
+
+// ============ WISHLIST ============
+export const fetchWishlist = async () => {
+  try {
+    const response = await apiClient.get('/wishlist', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch wishlist error:', error);
+    return [];
+  }
+};
+
+export const fetchWishlistProductIds = async (): Promise<number[]> => {
+  try {
+    const response = await apiClient.get('/wishlist/product-ids', {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Fetch wishlist product ids error:', error);
+    return [];
+  }
+};
+
+export const addToWishlist = async (productId: number) => {
+  try {
+    const response = await apiClient.post(`/wishlist/${productId}`, {}, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Add to wishlist error:', error);
+    throw error;
+  }
+};
+
+export const removeFromWishlist = async (productId: number) => {
+  try {
+    const response = await apiClient.delete(`/wishlist/${productId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Remove from wishlist error:', error);
+    throw error;
+  }
+};
+
+export const toggleWishlist = async (productId: number) => {
+  try {
+    const response = await apiClient.post(`/wishlist/toggle/${productId}`, {}, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Toggle wishlist error:', error);
+    throw error;
+  }
+};
+
+export const checkIsInWishlist = async (productId: number): Promise<boolean> => {
+  try {
+    const response = await apiClient.get(`/wishlist/check/${productId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data.isInWishlist;
+  } catch (error: any) {
+    console.error('Check wishlist error:', error);
+    return false;
+  }
+};
+
 import { createBrowserClient } from '@supabase/ssr';
 const client = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL });
 

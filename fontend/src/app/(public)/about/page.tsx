@@ -124,17 +124,6 @@ const AboutPage: React.FC = () => {
         </div>
       )}
 
-      {/* Top Banner */}
-      <div className="bg-black text-white py-2 px-4 text-center text-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-4">
-          <span>Miễn phí vận chuyển cho đơn hàng trên 100K</span>
-          <span className="hidden md:inline">|</span>
-          <span className="hidden md:inline">Ưu đãi GoatTech: Mua 4 ốp - Trả tiền 2 ốp</span>
-        </div>
-      </div>
-
-     
-
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 text-center">
@@ -261,48 +250,6 @@ const AboutPage: React.FC = () => {
           </Link>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="text-2xl font-bold mb-4">GoatTech</h3>
-              <p className="text-gray-400">Ốp điện thoại cao cấp và phụ kiện công nghệ</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Cửa Hàng</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/shop" className="hover:text-white">Ốp iPhone</Link></li>
-                <li><button className="hover:text-white text-left">Phụ Kiện</button></li>
-                <li><button className="hover:text-white text-left">Hàng Mới Về</button></li>
-                <li><button className="hover:text-white text-left">Khuyến Mại</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Hỗ Trợ</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/contact" className="hover:text-white">Liên Hệ Chúng Tôi</Link></li>
-                <li><button className="hover:text-white text-left">Thông Tin Vận Chuyển</button></li>
-                <li><button className="hover:text-white text-left">Chính Sách Hoàn Hàng</button></li>
-                <li><button className="hover:text-white text-left">Câu Hỏi Thường Gặp</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Theo Dõi Chúng Tôi</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><button className="hover:text-white text-left">Instagram</button></li>
-                <li><button className="hover:text-white text-left">Facebook</button></li>
-                <li><button className="hover:text-white text-left">TikTok</button></li>
-                <li><button className="hover:text-white text-left">YouTube</button></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 GoatTech - Ốp Điện Thoại Số 1 Việt Nam. Bảo Lưu Mọi Quyền.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

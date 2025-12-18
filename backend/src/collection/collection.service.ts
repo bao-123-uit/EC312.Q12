@@ -10,31 +10,43 @@ export class CollectionService {
 
   // Lấy tất cả bộ sưu tập
   async getAllCollections() {
-    const { data, error } = await this.supabase
-      .from('collections')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
+    try {
+      const { data, error } = await this.supabase
+        .from('collections')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('getAllCollections error:', error.message);
+        return []; // Trả về mảng rỗng
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('getAllCollections error:', error.message);
+      return [];
     }
-    return data;
   }
 
   // Lấy bộ sưu tập theo loại (main, seasonal)
   async getCollectionsByType(type: string) {
-    const { data, error } = await this.supabase
-      .from('collections')
-      .select('*')
-      .eq('collection_type', type)
-      .eq('is_active', true)
-      .order('display_order', { ascending: true });
+    try {
+      const { data, error } = await this.supabase
+        .from('collections')
+        .select('*')
+        .eq('collection_type', type)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('getCollectionsByType error:', error.message);
+        return [];
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('getCollectionsByType error:', error.message);
+      return [];
     }
-    return data;
   }
 
   // Lấy bộ sưu tập theo slug
@@ -53,31 +65,37 @@ export class CollectionService {
 
   // Lấy số lượng sản phẩm trong mỗi bộ sưu tập
   async getCollectionProductCounts() {
-    // Lấy tất cả collections
-    const { data: collections, error: collectionsError } = await this.supabase
-      .from('collections')
-      .select('collection_id, collection_slug')
-      .eq('is_active', true);
+    try {
+      // Lấy tất cả collections
+      const { data: collections, error: collectionsError } = await this.supabase
+        .from('collections')
+        .select('collection_id, collection_slug')
+        .eq('is_active', true);
 
-    if (collectionsError) {
-      throw new Error(collectionsError.message);
-    }
-
-    // Đếm sản phẩm cho mỗi collection
-    const counts: Record<string, number> = {};
-    
-    for (const collection of collections || []) {
-      const { count, error } = await this.supabase
-        .from('product_collections')
-        .select('*', { count: 'exact', head: true })
-        .eq('collection_id', collection.collection_id);
-
-      if (!error) {
-        counts[collection.collection_slug] = count || 0;
+      if (collectionsError) {
+        console.error('Collections table error:', collectionsError.message);
+        return {}; // Trả về object rỗng nếu table không tồn tại
       }
-    }
 
-    return counts;
+      // Đếm sản phẩm cho mỗi collection
+      const counts: Record<string, number> = {};
+      
+      for (const collection of collections || []) {
+        const { count, error } = await this.supabase
+          .from('product_collections')
+          .select('*', { count: 'exact', head: true })
+          .eq('collection_id', collection.collection_id);
+
+        if (!error) {
+          counts[collection.collection_slug] = count || 0;
+        }
+      }
+
+      return counts;
+    } catch (error: any) {
+      console.error('getCollectionProductCounts error:', error.message);
+      return {}; // Trả về object rỗng khi có lỗi
+    }
   }
 
   // Lấy sản phẩm trong một bộ sưu tập

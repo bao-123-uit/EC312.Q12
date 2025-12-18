@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Heart,
   Star,
@@ -10,10 +11,11 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 
-import { fetchProducts, createMomoPayment } from '@/lib/api-client';
-import { SHOP_CATEGORIES } from '@/lib/constants';
+import { fetchProducts, fetchCategoriesWithCount, createMomoPayment } from '@/lib/api-client';
 import { AddToCartButton } from '@/components/products/AddToCartButton';
 import { useCart } from '@/app/context/cart-context';
+import { useWishlist } from '@/app/context/wishlist-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 /* ===================== TYPES ===================== */
 interface Product {
@@ -25,6 +27,13 @@ interface Product {
   reviews: number;
   tag?: string;
   category: string;
+  categoryId: number;
+}
+
+interface Category {
+  category_id: number;
+  category_name: string;
+  product_count: number;
 }
 
 interface CartItem extends Product {
@@ -35,6 +44,7 @@ interface CartItem extends Product {
 export default function ShopPage() {
   /* ---------- State ---------- */
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -46,15 +56,24 @@ export default function ShopPage() {
   const [sortBy, setSortBy] = useState<'newest' | 'price-low' | 'price-high' | 'rating'>('newest');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 9_999_999]);
 
-  const [wishedProducts, setWishedProducts] = useState<Set<number>>(new Set());
-
   const { refreshCart } = useCart();
+  const { isWished, toggleWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
-  /* ---------- Fetch products ---------- */
+  /* ---------- Fetch products & categories ---------- */
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch categories từ API
+        const catData = await fetchCategoriesWithCount();
+        if (Array.isArray(catData)) {
+          setCategories(catData);
+        }
+        
+        // Fetch products
         const data = await fetchProducts(10000);
 
         const mapped: Product[] = data.map((p: any, index: number) => ({
@@ -68,23 +87,19 @@ export default function ShopPage() {
           rating: p.rating || 4.5,
           reviews: p.reviews || 0,
           tag: p.is_new ? 'MỚI' : p.is_featured ? 'NỔI BẬT' : undefined,
-          category:
-            p.category_id >= 1 && p.category_id <= 5
-              ? 'Ốp lưng'
-              : p.category_id >= 6 && p.category_id <= 8
-              ? 'Cường lực màn hình'
-              : 'Tất Cả',
+          category: p.category_name || 'Khác',
+          categoryId: p.category_id || 0,
         }));
 
         setProducts(mapped);
       } catch (err) {
-        console.error('Load products error:', err);
+        console.error('Load data error:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProducts();
+    loadData();
   }, []);
 
   /* ---------- Derived data ---------- */
@@ -115,12 +130,15 @@ export default function ShopPage() {
   const cartTotal = cartItems.reduce((t, i) => t + i.price * i.quantity, 0);
 
   /* ---------- Handlers ---------- */
-  const toggleWishlist = (productId: number) => {
-    setWishedProducts(prev => {
-      const next = new Set(prev);
-      next.has(productId) ? next.delete(productId) : next.add(productId);
-      return next;
-    });
+  const handleToggleWishlist = async (productId: number) => {
+    // Kiểm tra đăng nhập trước
+    if (!isAuthenticated) {
+      if (confirm('Vui lòng đăng nhập để thêm vào danh sách yêu thích. Đi đến trang đăng nhập?')) {
+        router.push('/login');
+      }
+      return;
+    }
+    await toggleWishlist(productId);
   };
 
   /* ===================== RENDER ===================== */
@@ -159,18 +177,35 @@ export default function ShopPage() {
             {/* Category */}
             <div className="mb-6">
               <h3 className="font-semibold mb-4">Loại Sản Phẩm</h3>
-              {SHOP_CATEGORIES.map(c => (
+              
+              {/* Tất cả */}
+              <label className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
+                <input
+                  type="radio"
+                  checked={selectedCategory === 'Tất Cả'}
+                  onChange={() => setSelectedCategory('Tất Cả')}
+                />
+                <span className="flex-1">Tất Cả</span>
+                <span className="text-gray-400 text-sm">
+                  ({products.length})
+                </span>
+              </label>
+              
+              {/* Categories từ API */}
+              {categories.map(cat => (
                 <label
-                  key={c.name}
+                  key={cat.category_id}
                   className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer"
                 >
                   <input
                     type="radio"
-                    checked={selectedCategory === c.name}
-                    onChange={() => setSelectedCategory(c.name)}
+                    checked={selectedCategory === cat.category_name}
+                    onChange={() => setSelectedCategory(cat.category_name)}
                   />
-                  <span>{c.icon}</span>
-                  <span>{c.name}</span>
+                  <span className="flex-1">{cat.category_name}</span>
+                  <span className="text-gray-400 text-sm">
+                    ({cat.product_count || 0})
+                  </span>
                 </label>
               ))}
             </div>
@@ -233,13 +268,13 @@ export default function ShopPage() {
                   <button
                     onClick={e => {
                       e.preventDefault();
-                      toggleWishlist(product.id);
+                      handleToggleWishlist(product.id);
                     }}
-                    className="absolute bottom-3 right-3 bg-white p-2 rounded-full shadow"
+                    className="absolute bottom-3 right-3 bg-white p-2 rounded-full shadow hover:scale-110 transition"
                   >
                     <Heart
                       className={`w-5 h-5 ${
-                        wishedProducts.has(product.id)
+                        isWished(product.id)
                           ? 'fill-red-500 text-red-500'
                           : ''
                       }`}

@@ -13,6 +13,7 @@ import { ReviewModule } from './review/review.module';
 import { ContactModule } from './contact/contact.module';
 import { CollectionModule } from './collection/collection.module';
 import { ShoppingCartModule } from './shopping-cart/shopping-cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -25,6 +26,7 @@ import { ShoppingCartModule } from './shopping-cart/shopping-cart.module';
     ContactModule,
     CollectionModule,
     ShoppingCartModule,
+    WishlistModule,
   ],
   controllers: [AppController, PaymentController],
   providers: [AppService, SupabaseService],

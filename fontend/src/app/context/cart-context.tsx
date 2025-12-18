@@ -79,6 +79,21 @@ export const CartProvider = ({
     refreshCart();
   }, [refreshCart]);
 
+  /**
+   * 🔔 Lắng nghe event cartUpdated để cập nhật ngay khi thêm vào giỏ
+   */
+  useEffect(() => {
+    const handleCartUpdated = () => {
+      refreshCart();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdated);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdated);
+    };
+  }, [refreshCart]);
+
   return (
     <CartContext.Provider
       value={{

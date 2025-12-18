@@ -8,6 +8,7 @@ import {
   fetchShoppingCart,
   createOrder,
   clearShoppingCart,
+  createMomoPayment,
 } from '@/lib/api-client';
 import {
   ArrowLeft,
@@ -213,9 +214,6 @@ export default function CheckoutPage() {
 
         // ✅ order financials (FULL TABLE)
         subtotal:subtotal,
-        // discount_amount: discount,
-        // shipping_fee: shippingFee,
-        // tax_amount: 0,
         total_amount: subtotal - discount + shippingFee,
 
         // ✅ meta
@@ -229,10 +227,38 @@ export default function CheckoutPage() {
       if (!result.success) throw new Error(result.message);
 
       const orderNumber = result.data.order_number;
-      const totalAmount = result.data.total_amount;
+      const orderId = result.data.order_id || result.data.id;
+      const totalAmount = result.data.total_amount || (subtotal - discount + shippingFee);
 
+      // ✅ Nếu chọn thanh toán MoMo -> Gọi API MoMo và redirect
+      if (paymentMethod === 'momo') {
+        try {
+          const momoResult = await createMomoPayment({
+            amount: totalAmount,
+            orderInfo: `Thanh toán đơn hàng #${orderNumber}`,
+            orderId: orderNumber, // Dùng order_number làm orderId cho MoMo
+            redirectUrl: `${window.location.origin}/payment-result`,
+            extraData: JSON.stringify({ orderId, orderNumber }),
+          });
+
+          if (momoResult.success && momoResult.data?.payUrl) {
+            // Xóa giỏ hàng trước khi redirect
+            await clearShoppingCart();
+            // Redirect đến trang thanh toán MoMo
+            window.location.href = momoResult.data.payUrl;
+            return;
+          } else {
+            throw new Error(momoResult.message || 'Không thể tạo thanh toán MoMo');
+          }
+        } catch (momoError: any) {
+          console.error('MoMo payment error:', momoError);
+          // Vẫn chuyển đến trang order nếu MoMo lỗi, để user có thể thanh toán sau
+          alert(`Lỗi thanh toán MoMo: ${momoError.message}. Đơn hàng đã được tạo, bạn có thể thanh toán sau.`);
+        }
+      }
+
+      // COD hoặc thanh toán khác -> Xóa giỏ hàng và chuyển đến trang order
       await clearShoppingCart();
-
       router.push(`/order/${orderNumber}?total=${totalAmount}`);
     } catch (err: any) {
       alert(err.message || 'Lỗi tạo đơn hàng');

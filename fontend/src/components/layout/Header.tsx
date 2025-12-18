@@ -8,13 +8,13 @@ import Link from 'next/link';
 // import { useAuth } from '@/context/AuthContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/app/context/cart-context';
+import { useWishlist } from '@/app/context/wishlist-context';
 import { useRouter } from 'next/navigation';
 
 
 interface HeaderProps {
   // onCartClick?: () => void;
   onWishlistClick?: () => void;
-  wishlistCount?: number;
   showDeviceSelector?: boolean;
   devices?: string[];
   selectedDevice?: string;
@@ -27,7 +27,6 @@ interface HeaderProps {
 export default function Header({
   // onCartClick,
   onWishlistClick,
-  wishlistCount = 0,
   showDeviceSelector = false,
   devices = [],
   selectedDevice = '',
@@ -41,8 +40,18 @@ export default function Header({
   const handleCartClick = () => {
     router.push('/shopping-cart');
   };
+  
+  const handleWishlistClick = () => {
+    if (onWishlistClick) {
+      onWishlistClick();
+    } else {
+      router.push('/wishlist');
+    }
+  };
+  
   const { user, isAuthenticated, logout, getDisplayName } = useAuth();
   const { cartCount } = useCart();
+  const { wishlistCount } = useWishlist();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -106,11 +115,11 @@ return (
           {/* Wishlist */}
           <button
             className="relative text-gray-800 hover:text-pink-600"
-            onClick={onWishlistClick}
+            onClick={handleWishlistClick}
           >
-            <Heart className="w-6 h-6" />
+            <Heart className={`w-6 h-6 ${wishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
             {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                 {wishlistCount}
               </span>
             )}

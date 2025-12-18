@@ -21,19 +21,26 @@ export class ShoppingCartService {
     }
 
     // Transform data để frontend dễ sử dụng
-    const cartItems = (data || []).map((item: any) => ({
-      cart_id: item.cart_id,
-      product_id: item.product_id,
-      variant_id: item.variant_id,
-      quantity: item.quantity,
-      created_at: item.created_at,
-      // Flatten product info
-      product_name: item.products?.product_name || `Sản phẩm #${item.product_id}`,
-      price: item.products?.sale_price || item.products?.price || 0,
-      original_price: item.products?.price || 0,
-      image_url: item.products?.image_url || '/placeholder.png',
-      status: item.products?.status || 'active',
-    }));
+    const cartItems = (data || []).map((item: any) => {
+      // Lấy ảnh primary hoặc ảnh đầu tiên từ product_images
+      const images = item.products?.product_images || [];
+      const primaryImage = images.find((img: any) => img.is_primary) || images[0];
+      const imageUrl = primaryImage?.image_url || null;
+
+      return {
+        cart_id: item.cart_id,
+        product_id: item.product_id,
+        variant_id: item.variant_id,
+        quantity: item.quantity,
+        created_at: item.created_at,
+        // Flatten product info
+        product_name: item.products?.product_name || `Sản phẩm #${item.product_id}`,
+        price: item.products?.sale_price || item.products?.price || 0,
+        original_price: item.products?.price || 0,
+        image_url: imageUrl,
+        status: item.products?.status || 'active',
+      };
+    });
 
     return {
       success: true,

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/app/context/cart-context';
 import { useRouter } from 'next/navigation';
 import {
   fetchShoppingCart,
@@ -26,6 +27,7 @@ interface CartItem {
 
 export default function CartPage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { refreshCart } = useCart();
   const router = useRouter();
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -49,6 +51,8 @@ export default function CartPage() {
         setCartItems(result.data || []);
         setCartTotal(result.total || 0);
         setItemCount(result.itemCount || 0);
+        // Cập nhật icon giỏ hàng trên header
+        await refreshCart();
       } else {
         console.error('Load cart failed:', result.message);
         setCartItems([]);
@@ -59,7 +63,7 @@ export default function CartPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, refreshCart]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -87,6 +91,8 @@ export default function CartPage() {
       if (result.success) {
         // Reload cart to get updated totals
         await loadCart();
+        // Cập nhật icon
+        await refreshCart();
       } else {
         alert(result.message);
       }
@@ -109,6 +115,8 @@ export default function CartPage() {
 
       if (result.success) {
         await loadCart();
+        // Cập nhật icon
+        await refreshCart();
       } else {
         alert(result.message);
       }
@@ -131,6 +139,8 @@ export default function CartPage() {
         setCartItems([]);
         setCartTotal(0);
         setItemCount(0);
+        // Cập nhật icon
+        await refreshCart();
       } else {
         alert(result.message);
       }
@@ -236,13 +246,17 @@ export default function CartPage() {
               >
                 {/* Product Image */}
                 <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={item.image_url || '/placeholder.png'}
-                    alt={item.product_name}
-                    width={96}
-                    height={96}
-                    className="w-full h-full object-cover"
-                  />
+                  {item.image_url && item.image_url.startsWith('http') ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.product_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-2">
+                      {item.product_name}
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Info */}

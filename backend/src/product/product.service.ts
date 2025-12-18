@@ -36,7 +36,7 @@ export class ProductService {
     if (result.error) {
       return { success: false, message: result.error.message };
     }
-    return { success: true, message: 'Xóa sản phẩm thành công' };
+    return { success: true, message: 'Đã ẩn sản phẩm thành công' };
   }
 
   async getProductsBySeason(season: string) {

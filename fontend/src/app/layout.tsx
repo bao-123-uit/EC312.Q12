@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from '@/app/context/cart-context';
+import { WishlistProvider } from '@/app/context/wishlist-context';
 // import { AuthProvider } from '@/app/context/auth-context';
 import { AuthProvider } from '@/contexts/AuthContext';
 // import Navbar from '@/components/Navbar'; 
@@ -28,7 +29,9 @@ export default function RootLayout({ children,}: Readonly<{ children: React.Reac
       >
         <AuthProvider>
           <CartProvider>
-            {children}
+            <WishlistProvider>
+              {children}
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>

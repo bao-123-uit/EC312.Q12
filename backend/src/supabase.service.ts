@@ -71,18 +71,45 @@ export class SupabaseService {
   async getProducts(limit = 10) {
     const { data, error } = await this.supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        categories (
+          category_id,
+          category_name
+        )
+      `)
+      .neq('status', 'deleted')
       .limit(limit);
-    return { data, error };
+    
+    // Flatten category name into product
+    const flattenedData = data?.map((p: any) => ({
+      ...p,
+      category_name: p.categories?.category_name || 'Khác'
+    }));
+    
+    return { data: flattenedData, error };
   }
 
   async getProductById(productId: number) {
     const { data, error } = await this.supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        categories (
+          category_id,
+          category_name
+        )
+      `)
       .eq('product_id', productId)
       .single();
-    return { data, error };
+    
+    // Flatten category name
+    const flattenedData = data ? {
+      ...data,
+      category_name: data.categories?.category_name || 'Khác'
+    } : null;
+    
+    return { data: flattenedData, error };;
   }
 
   async createProduct(productData: any) {
@@ -102,11 +129,14 @@ export class SupabaseService {
     return { data, error };
   }
 
+  // Soft delete - đổi status thành 'deleted' thay vì xóa hẳn
+  // Vì sản phẩm có thể đã có trong order_items
   async deleteProduct(productId: number) {
     const { data, error } = await this.supabase
       .from('products')
-      .delete()
-      .eq('product_id', productId);
+      .update({ status: 'deleted' })
+      .eq('product_id', productId)
+      .select();
     return { data, error };
   }
 
@@ -563,11 +593,14 @@ async getDesignCollectionProductCounts() {
     return { data, error };
   }
 
+  // Soft delete - đổi is_active thành false thay vì xóa hẳn
+  // Vì danh mục có thể đã có sản phẩm
   async deleteCategory(categoryId: number) {
     const { data, error } = await this.supabase
       .from('categories')
-      .delete()
-      .eq('category_id', categoryId);
+      .update({ is_active: false })
+      .eq('category_id', categoryId)
+      .select();
     return { data, error };
   }
 
@@ -823,7 +856,7 @@ async getDesignCollectionProductCounts() {
   // ============ SHOPPING CART (CẬP NHẬT) ============
 
 /**
- * Lấy giỏ hàng theo user_id (UUID) - JOIN với products
+ * Lấy giỏ hàng theo user_id (UUID) - JOIN với products và product_images
  */
 async getShoppingCartByUserId(userId: string) {
   const { data, error } = await this.supabase
@@ -841,7 +874,11 @@ async getShoppingCartByUserId(userId: string) {
         product_name,
         price,
         sale_price,
-        status
+        status,
+        product_images (
+          image_url,
+          is_primary
+        )
       )
     `)
     .eq('customer_id', userId)
@@ -951,6 +988,88 @@ async getCartItemById(cartId: number) {
     .from('shopping_carts')
     .select('*')
     .eq('cart_id', cartId)
+    .single();
+
+  return { data, error };
+}
+
+// ============ WISHLIST ============
+
+/**
+ * Lấy danh sách yêu thích của user (dùng user_id UUID)
+ */
+async getWishlistByUserId(userId: string) {
+  const { data, error } = await this.supabase
+    .from('wishlists')
+    .select(`
+      wishlist_id,
+      product_id,
+      created_at,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price,
+        image_url,
+        description
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  return { data, error };
+}
+
+/**
+ * Lấy danh sách product_id trong wishlist của user
+ */
+async getWishlistProductIds(userId: string) {
+  const { data, error } = await this.supabase
+    .from('wishlists')
+    .select('product_id')
+    .eq('user_id', userId);
+
+  return { data, error };
+}
+
+/**
+ * Thêm sản phẩm vào wishlist (user_id dạng UUID)
+ */
+async addProductToWishlist(userId: string, productId: number) {
+  const { data, error } = await this.supabase
+    .from('wishlists')
+    .insert({
+      user_id: userId,
+      product_id: productId,
+    })
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Xóa sản phẩm khỏi wishlist (user_id dạng UUID)
+ */
+async removeProductFromWishlist(userId: string, productId: number) {
+  const { data, error } = await this.supabase
+    .from('wishlists')
+    .delete()
+    .eq('user_id', userId)
+    .eq('product_id', productId);
+
+  return { data, error };
+}
+
+/**
+ * Kiểm tra sản phẩm có trong wishlist không
+ */
+async getWishlistItem(userId: string, productId: number) {
+  const { data, error } = await this.supabase
+    .from('wishlists')
+    .select('wishlist_id')
+    .eq('user_id', userId)
+    .eq('product_id', productId)
     .single();
 
   return { data, error };
