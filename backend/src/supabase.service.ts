@@ -76,19 +76,34 @@ export class SupabaseService {
         categories (
           category_id,
           category_name
+        ),
+        product_images (
+          image_id,
+          image_url,
+          is_primary,
+          display_order
         )
       `)
       .neq('status', 'deleted')
       .limit(limit);
-    
-    // Flatten category name into product
-    const flattenedData = data?.map((p: any) => ({
-      ...p,
-      category_name: p.categories?.category_name || 'Khác'
-    }));
-    
+
+    const flattenedData = data?.map((p: any) => {
+      // tìm ảnh chính
+      const primaryImage =
+        p.product_images?.find((img: any) => img.is_primary) ||
+        p.product_images?.[0];
+
+      return {
+        ...p,
+        category_name: p.categories?.category_name || 'Khác',
+        image_url: primaryImage?.image_url || null,
+        images: p.product_images || [],
+      };
+    });
+
     return { data: flattenedData, error };
   }
+
 
   async getProductById(productId: number) {
     const { data, error } = await this.supabase

@@ -22,7 +22,8 @@ interface Product {
   id: number;
   name: string;
   price: number;
-  image: string;
+  // image: string;
+  image_url: string;
   rating: number;
   reviews: number;
   tag?: string;
@@ -75,20 +76,21 @@ export default function ShopPage() {
         
         // Fetch products
         const data = await fetchProducts(10000);
+        console.log('SHOP PRODUCT SAMPLE:', data[0]);
 
         const mapped: Product[] = data.map((p: any, index: number) => ({
           id: p.product_id || p.id || index + 1,
           name: p.product_name || p.name || 'Sản phẩm',
           price: p.price || 0,
-          image:
+          image_url:
             p.image_url ||
             p.image ||
-            'https://i.pinimg.com/1200x/f4/0a/de/f40ade8f15c8354c5eb584af2b1ebd82.jpg',
+            'https://res.cloudinary.com/ddaryoz5b/image/upload/v1766113075/510K2ioasAL._AC_UY436_FMwebp_QL65__eavdxx.webp',
           rating: p.rating || 4.5,
           reviews: p.reviews || 0,
           tag: p.is_new ? 'MỚI' : p.is_featured ? 'NỔI BẬT' : undefined,
           category: p.category_name || 'Khác',
-          categoryId: p.category_id || 0,
+          categoryId: p.categories?.category_id ?? 0,
         }));
 
         setProducts(mapped);
@@ -260,7 +262,7 @@ export default function ShopPage() {
                   )}
 
                   <img
-                    src={product.image}
+                    src={product.image_url}
                     alt={product.name}
                     className="w-full h-64 object-cover group-hover:scale-110 transition"
                   />

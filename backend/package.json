@@ -29,6 +29,8 @@
     "@supabase/supabase-js": "^2.86.2",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.8.0",
+    "next-cloudinary": "^6.17.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",

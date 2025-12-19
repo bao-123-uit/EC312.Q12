@@ -255,8 +255,7 @@ CREATE TABLE public.order_items (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id),
   CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
-  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.orders (
   order_id integer NOT NULL DEFAULT nextval('orders_order_id_seq'::regclass),
@@ -553,8 +552,10 @@ CREATE TABLE public.wishlists (
   product_id integer,
   variant_id integer,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  user_id uuid,
   CONSTRAINT wishlists_pkey PRIMARY KEY (wishlist_id),
   CONSTRAINT wishlists_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT wishlists_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+  CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id),
+  CONSTRAINT wishlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
