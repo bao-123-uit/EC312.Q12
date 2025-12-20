@@ -31,6 +31,8 @@ export class ShoppingCartService {
         cart_id: item.cart_id,
         product_id: item.product_id,
         variant_id: item.variant_id,
+        phone_model_id: item.phone_model_id,
+        phone_model_name: item.phone_model_name,
         quantity: item.quantity,
         created_at: item.created_at,
         // Flatten product info
@@ -53,16 +55,23 @@ export class ShoppingCartService {
   /**
    * Thêm sản phẩm vào giỏ
    */
-  async addToCart(userId: string, productId: number, quantity: number = 1, variantId?: number) {
-    this.logger.log(`Adding to cart: user=${userId}, product=${productId}, qty=${quantity}`);
+  async addToCart(
+    userId: string, 
+    productId: number, 
+    quantity: number = 1, 
+    variantId?: number,
+    phoneModelId?: number,
+    phoneModelName?: string
+  ) {
+    this.logger.log(`Adding to cart: user=${userId}, product=${productId}, qty=${quantity}, phoneModel=${phoneModelName || phoneModelId}`);
 
     if (quantity < 1) {
       throw new BadRequestException('Số lượng phải >= 1');
     }
 
-    // 1️⃣ Kiểm tra sản phẩm đã có trong giỏ chưa
+    // 1️⃣ Kiểm tra sản phẩm đã có trong giỏ chưa (cùng phone model)
     const { data: existingItem, error: checkError } = 
-      await this.supabaseService.getCartItemByUserAndProduct(userId, productId);
+      await this.supabaseService.getCartItemByUserAndProduct(userId, productId, phoneModelId);
 
     if (checkError && checkError.code !== 'PGRST116') {
       // PGRST116 = no rows returned, không phải lỗi thực sự
@@ -96,6 +105,8 @@ export class ShoppingCartService {
       customer_id: userId,
       product_id: productId,
       variant_id: variantId || null,
+      phone_model_id: phoneModelId || null,
+      phone_model_name: phoneModelName || null,
       quantity,
     });
 

@@ -54,33 +54,33 @@ export const CartProvider = ({
   /**
    * ➕ Tăng số lượng ngay (UX)
    */
-  const increaseCart = (qty: number = 1) => {
+  const increaseCart = useCallback((qty: number = 1) => {
     setCartCount(prev => Math.max(prev + qty, 0));
-  };
+  }, []);
 
   /**
    * ➖ Giảm số lượng
    */
-  const decreaseCart = (qty: number = 1) => {
+  const decreaseCart = useCallback((qty: number = 1) => {
     setCartCount(prev => Math.max(prev - qty, 0));
-  };
+  }, []);
 
   /**
-   * 🧹 Clear cart (sau checkout / logout)
+   * Clear cart (sau checkout / logout)
    */
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCartCount(0);
-  };
+  }, []);
 
   /**
-   * 🚀 Load cart lần đầu khi app mount
+   * Load cart lần đầu khi app mount
    */
   useEffect(() => {
     refreshCart();
   }, [refreshCart]);
 
   /**
-   * 🔔 Lắng nghe event cartUpdated để cập nhật ngay khi thêm vào giỏ
+   *  Lắng nghe event cartUpdated để cập nhật ngay khi thêm vào giỏ
    */
   useEffect(() => {
     const handleCartUpdated = () => {

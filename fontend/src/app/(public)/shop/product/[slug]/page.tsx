@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Star, Heart, ShoppingCart, Minus, Plus, 
-  Truck, Shield, RotateCcw, Check, ChevronRight
+  Truck, Shield, RotateCcw, Check, ChevronRight, Gift
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -340,7 +340,7 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-4 mb-8">
+              <div className="flex gap-4 mb-4">
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
@@ -356,6 +356,15 @@ export default function ProductDetailPage() {
                   Mua ngay
                 </button>
               </div>
+
+              {/* Gift Button */}
+              <button
+                onClick={() => router.push(`/gift/send?productId=${product.product_id}`)}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition mb-8"
+              >
+                <Gift className="w-5 h-5" />
+                🎁 Gửi Tặng Bạn Bè
+              </button>
 
               {/* Benefits */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl">

@@ -28,6 +28,8 @@ interface CartItem {
   cart_id: number;
   product_id: number;
   variant_id?: number;
+  phone_model_id?: number;
+  phone_model_name?: string;
   quantity: number;
   product_name: string;
   price: number;
@@ -196,6 +198,8 @@ export default function CheckoutPage() {
         items: cartItems.map(item => ({
           product_id: item.product_id,//
           variant_id: item.variant_id,//
+          phone_model_id: item.phone_model_id,
+          phone_model_name: item.phone_model_name,
           product_name: item.product_name || item.products?.product_name || `Product #${item.product_id}`,
           quantity: item.quantity,//
           unit_price: item.price || item.products?.sale_price || item.products?.price || 0,
@@ -572,18 +576,23 @@ export default function CheckoutPage() {
               {/* Cart Items */}
               <div className="space-y-4 max-h-64 overflow-y-auto mb-6 pb-4 border-b">
                 {cartItems.map((item) => (
-                  <div key={item.cartid} className="flex gap-3">
+                  <div key={item.cart_id} className="flex gap-3">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                       <img
-                        src={item.imageurl || '/placeholder.png'}
-                        alt={item.productname}
+                        src={item.image_url || '/placeholder.png'}
+                        alt={item.product_name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm line-clamp-2">
-                        {item.productname}
+                        {item.product_name}
                       </p>
+                      {item.phone_model_name && (
+                        <p className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded inline-block mt-1">
+                          📱 {item.phone_model_name}
+                        </p>
+                      )}
                       <p className="text-gray-500 text-sm">
                         x{item.quantity}
                       </p>

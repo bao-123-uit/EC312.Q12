@@ -290,6 +290,8 @@ async createFullOrderItem(itemData: {
   unit_price: number;
   discount_amount?: number;
   total_price: number;
+  phone_model_id?: number | null;
+  phone_model_name?: string | null;
 }) {
   const { data, error } = await this.supabase
     .from('order_items')
@@ -888,15 +890,23 @@ async getShoppingCartByUserId(userId: string) {
 }
 
 /**
- * Kiểm tra sản phẩm đã có trong giỏ chưa
+ * Kiểm tra sản phẩm đã có trong giỏ chưa (có thể check theo phone_model_id)
  */
-async getCartItemByUserAndProduct(userId: string, productId: number) {
-  const { data, error } = await this.supabase
+async getCartItemByUserAndProduct(userId: string, productId: number, phoneModelId?: number) {
+  let query = this.supabase
     .from('shopping_carts')
     .select('*')
     .eq('customer_id', userId)
-    .eq('product_id', productId)
-    .maybeSingle();  // Dùng maybeSingle thay vì single để tránh lỗi khi không có data
+    .eq('product_id', productId);
+    
+  // Nếu có phoneModelId, check cả phone model
+  if (phoneModelId) {
+    query = query.eq('phone_model_id', phoneModelId);
+  } else {
+    query = query.is('phone_model_id', null);
+  }
+
+  const { data, error } = await query.maybeSingle();  // Dùng maybeSingle thay vì single để tránh lỗi khi không có data
 
   return { data, error };
 }
@@ -912,6 +922,8 @@ async createShoppingCartItem(cartData: {
   customer_id: string;  // UUID từ users.id
   product_id: number;
   variant_id?: number | null;
+  phone_model_id?: number | null;
+  phone_model_name?: string | null;
   quantity: number;
 }) {
   const { data, error } = await this.supabase
@@ -920,9 +932,11 @@ async createShoppingCartItem(cartData: {
       customer_id: cartData.customer_id,  // ✅ UUID trực tiếp, không cần map
       product_id: cartData.product_id,
       variant_id: cartData.variant_id || null,
+      phone_model_id: cartData.phone_model_id || null,
+      phone_model_name: cartData.phone_model_name || null,
       quantity: cartData.quantity,
     }])
-    .select(`...`)
+    .select(`*`)
     .single();
 
   return { data, error };
@@ -1075,5 +1089,358 @@ async getWishlistItem(userId: string, productId: number) {
   return { data, error };
 }
 
+// ============ GIFTS ============
+
+/**
+ * Tạo quà tặng mới
+ */
+async createGift(giftData: {
+  sender_id?: string;
+  sender_name: string;
+  sender_email: string;
+  sender_message?: string;
+  recipient_name: string;
+  recipient_email: string;
+  recipient_phone?: string;
+  recipient_address?: string;
+  product_id: number;
+  quantity: number;
+  verification_code: string;
+}) {
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .insert(giftData)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy thông tin quà tặng theo ID
+ */
+async getGiftById(giftId: string) {
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .select(`
+      *,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price,
+        image_url,
+        product_images (
+          image_url,
+          is_primary
+        )
+      )
+    `)
+    .eq('gift_id', giftId)
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy thông tin quà tặng công khai (không có verification_code)
+ */
+async getGiftPublicInfo(giftId: string) {
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .select(`
+      gift_id,
+      sender_name,
+      sender_message,
+      recipient_name,
+      recipient_email,
+      status,
+      created_at,
+      expires_at,
+      products (
+        product_id,
+        product_name,
+        price,
+        sale_price,
+        image_url,
+        product_images (
+          image_url,
+          is_primary
+        )
+      )
+    `)
+    .eq('gift_id', giftId)
+    .single();
+  return { data, error };
+}
+
+/**
+ * Cập nhật trạng thái quà tặng
+ */
+async updateGiftStatus(giftId: string, status: string, extraData?: any) {
+  const updateData: any = { status, ...extraData };
+  
+  if (status === 'verified') {
+    updateData.verified_at = new Date().toISOString();
+  } else if (status === 'claimed') {
+    updateData.claimed_at = new Date().toISOString();
+  }
+
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .update(updateData)
+    .eq('gift_id', giftId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lưu lịch sử email quà tặng
+ */
+async createGiftEmail(emailData: {
+  gift_id: string;
+  email_type: string;
+  sent_to: string;
+  status?: string;
+}) {
+  const { data, error } = await this.supabase
+    .from('gift_emails')
+    .insert(emailData)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy danh sách quà đã gửi theo user
+ */
+async getSentGifts(userId: string) {
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .select(`
+      *,
+      products (
+        product_name,
+        price,
+        sale_price,
+        image_url,
+        product_images (image_url, is_primary)
+      )
+    `)
+    .eq('sender_id', userId)
+    .order('created_at', { ascending: false });
+  return { data, error };
+}
+
+/**
+ * Lấy danh sách quà đã nhận theo email
+ */
+async getReceivedGifts(email: string) {
+  const { data, error } = await this.supabase
+    .from('gifts')
+    .select(`
+      *,
+      products (
+        product_name,
+        price,
+        sale_price,
+        image_url,
+        product_images (image_url, is_primary)
+      )
+    `)
+    .eq('recipient_email', email)
+    .order('created_at', { ascending: false });
+  return { data, error };
+}
+
+// ============ PHONE TEMPLATES ============
+
+/**
+ * Lấy danh sách phone templates
+ */
+async getPhoneTemplates() {
+  const { data, error } = await this.supabase
+    .from('phone_templates')
+    .select('*')
+    .eq('is_active', true)
+    .order('brand', { ascending: true });
+  return { data, error };
+}
+
+/**
+ * Lấy phone template theo ID
+ */
+async getPhoneTemplateById(templateId: number) {
+  const { data, error } = await this.supabase
+    .from('phone_templates')
+    .select('*')
+    .eq('template_id', templateId)
+    .single();
+  return { data, error };
+}
+
+/**
+ * Tạo phone template mới
+ */
+async createPhoneTemplate(templateData: any) {
+  const { data, error } = await this.supabase
+    .from('phone_templates')
+    .insert(templateData)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Cập nhật phone template
+ */
+async updatePhoneTemplate(templateId: number, templateData: any) {
+  const { data, error } = await this.supabase
+    .from('phone_templates')
+    .update(templateData)
+    .eq('template_id', templateId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Xóa phone template
+ */
+async deletePhoneTemplate(templateId: number) {
+  const { error } = await this.supabase
+    .from('phone_templates')
+    .delete()
+    .eq('template_id', templateId);
+  return { error };
+}
+
+// ============ CUSTOM DESIGNS ============
+
+/**
+ * Tạo thiết kế mới
+ */
+async createDesign(designData: any) {
+  const { data, error } = await this.supabase
+    .from('custom_designs')
+    .insert(designData)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy thiết kế theo ID
+ */
+async getDesignById(designId: number) {
+  const { data, error } = await this.supabase
+    .from('custom_designs')
+    .select(`
+      *,
+      phone_templates (
+        phone_model,
+        brand,
+        template_image_url
+      )
+    `)
+    .eq('design_id', designId)
+    .single();
+  return { data, error };
+}
+
+/**
+ * Cập nhật thiết kế
+ */
+async updateDesign(designId: number, updateData: any) {
+  const { data, error } = await this.supabase
+    .from('custom_designs')
+    .update(updateData)
+    .eq('design_id', designId)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy danh sách thiết kế của user
+ */
+async getUserDesigns(userId: string) {
+  const { data, error } = await this.supabase
+    .from('custom_designs')
+    .select(`
+      *,
+      phone_templates (
+        phone_model,
+        brand,
+        template_image_url
+      )
+    `)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return { data, error };
+}
+
+/**
+ * Lấy tất cả thiết kế (admin)
+ */
+async getAllDesigns(status?: string) {
+  let query = this.supabase
+    .from('custom_designs')
+    .select(`
+      *,
+      phone_templates (
+        phone_model,
+        brand,
+        template_image_url
+      ),
+      users (
+        full_name,
+        email,
+        phone
+      )
+    `)
+    .order('submitted_at', { ascending: false, nullsFirst: false });
+
+  if (status) {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query;
+  return { data, error };
+}
+
+/**
+ * Xóa thiết kế
+ */
+async deleteDesign(designId: number) {
+  const { error } = await this.supabase
+    .from('custom_designs')
+    .delete()
+    .eq('design_id', designId);
+  return { error };
+}
+
+/**
+ * Lưu ảnh thiết kế
+ */
+async createDesignImage(imageData: any) {
+  const { data, error } = await this.supabase
+    .from('design_images')
+    .insert(imageData)
+    .select()
+    .single();
+  return { data, error };
+}
+
+/**
+ * Lấy danh sách ảnh của thiết kế
+ */
+async getDesignImages(designId: number) {
+  const { data, error } = await this.supabase
+    .from('design_images')
+    .select('*')
+    .eq('design_id', designId)
+    .order('created_at', { ascending: true });
+  return { data, error };
+}
 
 }

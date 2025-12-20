@@ -453,19 +453,22 @@ export const fetchShoppingCart = async () => {
  * Thêm sản phẩm vào giỏ
  */
 export const addToShoppingCart = async (data: {
+  userId: string;
   productId: number;
-  // quantity: number;
-  quantity:1 ;
+  quantity?: number;
   variantId?: number;
+  phoneModelId?: number;
+  phoneModelName?: string;
 }) => {
   try {
     const response = await apiClient.post(
       '/shopping-cart',
       {
         productId: data.productId,
-        // quantity: data.quantity || 1,
-        quantity: 1,
+        quantity: data.quantity || 1,
         variantId: data.variantId || null,
+        phoneModelId: data.phoneModelId || null,
+        phoneModelName: data.phoneModelName || null,
       },
       {
         headers: getAuthHeaders(),
@@ -703,6 +706,231 @@ export const checkIsInWishlist = async (productId: number): Promise<boolean> => 
     console.error('Check wishlist error:', error);
     return false;
   }
+};
+
+// ============ GIFT ============
+export interface SendGiftData {
+  senderName: string;
+  senderEmail: string;
+  senderMessage?: string;
+  senderId?: string;
+  recipientName: string;
+  recipientEmail: string;
+  recipientPhone?: string;
+  recipientAddress?: string;
+  productId: number;
+  quantity?: number;
+}
+
+export const sendGift = async (data: SendGiftData) => {
+  const response = await apiClient.post('/gift/send', data);
+  return response.data;
+};
+
+export const verifyGift = async (giftId: string, verificationCode: string) => {
+  const response = await apiClient.post('/gift/verify', { giftId, verificationCode });
+  return response.data;
+};
+
+export const claimGift = async (giftId: string, recipientAddress: string, recipientPhone: string) => {
+  const response = await apiClient.post('/gift/claim', { giftId, recipientAddress, recipientPhone });
+  return response.data;
+};
+
+export const getGiftInfo = async (giftId: string) => {
+  const response = await apiClient.get(`/gift/${giftId}`);
+  return response.data;
+};
+
+export const getSentGifts = async (userId: string) => {
+  const response = await apiClient.get(`/gift/sent/${userId}`);
+  return response.data;
+};
+
+export const getReceivedGifts = async (email: string) => {
+  const response = await apiClient.get(`/gift/received/by-email?email=${encodeURIComponent(email)}`);
+  return response.data;
+};
+
+// ============ CUSTOM DESIGNS ============
+export interface CreateDesignData {
+  userId?: string;
+  guestEmail?: string;
+  guestName?: string;
+  guestPhone?: string;
+  templateId?: string;
+  phoneModel: string;
+  designData: any;
+  previewImageBase64?: string;
+}
+
+export interface SubmitDesignData {
+  guestEmail?: string;
+  guestName?: string;
+  guestPhone?: string;
+}
+
+// Lấy danh sách phone templates
+export const getPhoneTemplates = async () => {
+  const response = await apiClient.get('/designs/templates');
+  return response.data;
+};
+
+// Tạo thiết kế mới
+export const createDesign = async (data: CreateDesignData) => {
+  const response = await apiClient.post('/designs', data);
+  return response.data;
+};
+
+// Lấy thiết kế theo ID
+export const getDesignById = async (designId: string) => {
+  const response = await apiClient.get(`/designs/${designId}`);
+  return response.data;
+};
+
+// Cập nhật thiết kế
+export const updateDesign = async (designId: string, data: any) => {
+  const response = await apiClient.put(`/designs/${designId}`, data);
+  return response.data;
+};
+
+// Gửi thiết kế cho admin
+export const submitDesign = async (designId: string, data: SubmitDesignData) => {
+  const response = await apiClient.post(`/designs/${designId}/submit`, data);
+  return response.data;
+};
+
+// Lấy thiết kế của user
+export const getUserDesigns = async (userId: string) => {
+  const response = await apiClient.get(`/designs/user/${userId}`);
+  return response.data;
+};
+
+// Admin: Lấy tất cả thiết kế
+export const getAllDesigns = async (status?: string) => {
+  const url = status ? `/designs/admin/all?status=${status}` : '/designs/admin/all';
+  const response = await apiClient.get(url);
+  return response.data;
+};
+
+// Admin: Duyệt thiết kế
+export const approveDesign = async (designId: string, adminNotes?: string) => {
+  const response = await apiClient.put(`/designs/admin/${designId}/approve`, { adminNotes });
+  return response.data;
+};
+
+// Admin: Từ chối thiết kế
+export const rejectDesign = async (designId: string, adminNotes: string) => {
+  const response = await apiClient.put(`/designs/admin/${designId}/reject`, { adminNotes });
+  return response.data;
+};
+
+// Xóa thiết kế
+export const deleteDesign = async (designId: string) => {
+  const response = await apiClient.delete(`/designs/${designId}`);
+  return response.data;
+};
+
+// ============ PHONE MODELS (Dòng máy điện thoại) ============
+
+// Lấy tất cả dòng máy (grouped by brand)
+export const fetchAllPhoneModels = async () => {
+  try {
+    const response = await apiClient.get('/phone-models');
+    return response.data;
+  } catch (error) {
+    console.error('fetchAllPhoneModels error:', error);
+    return { success: false, data: [] };
+  }
+};
+
+// Lấy dòng máy phổ biến
+export const fetchPopularPhoneModels = async () => {
+  try {
+    const response = await apiClient.get('/phone-models/popular');
+    return response.data;
+  } catch (error) {
+    console.error('fetchPopularPhoneModels error:', error);
+    return { success: false, data: [] };
+  }
+};
+
+// Lấy dòng máy theo hãng
+export const fetchPhoneModelsByBrand = async (brandName: string) => {
+  try {
+    const response = await apiClient.get(`/phone-models/brand/${encodeURIComponent(brandName)}`);
+    return response.data;
+  } catch (error) {
+    console.error('fetchPhoneModelsByBrand error:', error);
+    return { success: false, data: [] };
+  }
+};
+
+// Tìm kiếm dòng máy
+export const searchPhoneModels = async (keyword: string) => {
+  try {
+    const response = await apiClient.get(`/phone-models/search?keyword=${encodeURIComponent(keyword)}`);
+    return response.data;
+  } catch (error) {
+    console.error('searchPhoneModels error:', error);
+    return { success: false, data: [] };
+  }
+};
+
+// Lấy dòng máy tương thích với sản phẩm
+export const fetchCompatiblePhoneModels = async (productId: number) => {
+  try {
+    const response = await apiClient.get(`/phone-models/product/${productId}`);
+    return response.data;
+  } catch (error) {
+    console.error('fetchCompatiblePhoneModels error:', error);
+    return { success: false, data: [] };
+  }
+};
+
+// Lấy chi tiết dòng máy
+export const fetchPhoneModelById = async (modelId: number) => {
+  try {
+    const response = await apiClient.get(`/phone-models/${modelId}`);
+    return response.data;
+  } catch (error) {
+    console.error('fetchPhoneModelById error:', error);
+    return null;
+  }
+};
+
+// Admin: Tạo dòng máy mới
+export const createPhoneModel = async (modelData: {
+  brand_name: string;
+  model_name: string;
+  model_code?: string;
+  release_year?: number;
+  screen_size?: string;
+  is_popular?: boolean;
+  is_active?: boolean;
+}) => {
+  const response = await apiClient.post('/phone-models', modelData);
+  return response.data;
+};
+
+// Admin: Cập nhật dòng máy
+export const updatePhoneModel = async (modelId: number, modelData: any) => {
+  const response = await apiClient.put(`/phone-models/${modelId}`, modelData);
+  return response.data;
+};
+
+// Admin: Xóa dòng máy
+export const deletePhoneModel = async (modelId: number) => {
+  const response = await apiClient.delete(`/phone-models/${modelId}`);
+  return response.data;
+};
+
+// Admin: Set dòng máy tương thích cho sản phẩm
+export const setProductCompatibility = async (productId: number, phoneModelIds: number[]) => {
+  const response = await apiClient.post(`/phone-models/product/${productId}/compatibility`, {
+    phoneModelIds,
+  });
+  return response.data;
 };
 
 import { createBrowserClient } from '@supabase/ssr';

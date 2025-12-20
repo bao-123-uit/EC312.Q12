@@ -58,11 +58,15 @@ interface Product {
 interface Order {
   order_id: number;
   order_number: string;
-  customer_id: number;
+  customer_id: string | null;
   order_status: string;
   payment_status: string;
   total_amount: number;
   created_at: string;
+  shipping_full_name?: string;
+  shipping_phone?: string;
+  shipping_address?: string;
+  customer_note?: string;
 }
 
 interface Customer {
@@ -304,6 +308,8 @@ const AdminDashboard: React.FC = () => {
     { id: 'categories', label: 'Danh Mục', icon: FolderTree },
     { id: 'reviews', label: 'Đánh Giá', icon: Star },
     { id: 'contacts', label: 'Tin Nhắn', icon: MessageSquare },
+    { id: 'designs', label: ' Thiết Kế', icon: Package, isLink: true, href: '/admin/designs' },
+    { id: 'templates', label: 'Các mẫu điện thoại', icon: Package, isLink: true, href: '/admin/templates' },
     { id: 'settings', label: 'Cài Đặt', icon: Settings }
   ];
 
@@ -666,17 +672,28 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <nav className="mt-6">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition ${
-                activeTab === item.id ? 'bg-gray-800 border-l-4 border-pink-500' : ''
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              {isSidebarOpen && <span>{item.label}</span>}
-            </button>
+          {menuItems.map((item: any) => (
+            item.isLink ? (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition`}
+              >
+                <item.icon className="w-5 h-5" />
+                {isSidebarOpen && <span>{item.label}</span>}
+              </Link>
+            ) : (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition ${
+                  activeTab === item.id ? 'bg-gray-800 border-l-4 border-pink-500' : ''
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                {isSidebarOpen && <span>{item.label}</span>}
+              </button>
+            )
           ))}
         </nav>
 
@@ -911,7 +928,7 @@ const AdminDashboard: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã ĐH</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khách Hàng ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khách Hàng</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày Đặt</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổng Tiền</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng Thái</th>
@@ -923,7 +940,21 @@ const AdminDashboard: React.FC = () => {
                     {filteredOrders.map((order) => (
                       <tr key={order.order_id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap font-medium">#{order.order_number || order.order_id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">#{order.customer_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {order.customer_id ? (
+                            <span>#{order.customer_id.slice(0, 8)}</span>
+                          ) : order.shipping_full_name ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium">{order.shipping_full_name}</span>
+                              <span className="text-xs text-gray-500">{order.shipping_phone}</span>
+                              {order.order_number?.startsWith('MSG') && (
+                                <span className="text-xs text-blue-500"> Messenger</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">Khách vãng lai</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">{order.created_at ? new Date(order.created_at).toLocaleDateString('vi-VN') : '-'}</td>
                         <td className="px-6 py-4 whitespace-nowrap font-bold">{order.total_amount?.toLocaleString('vi-VN')}₫</td>
                         <td className="px-6 py-4 whitespace-nowrap">

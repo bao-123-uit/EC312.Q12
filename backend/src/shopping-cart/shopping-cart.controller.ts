@@ -18,6 +18,8 @@ class AddToCartDto {
   productId: number;
   quantity?: number;
   variantId?: number;
+  phoneModelId?: number;
+  phoneModelName?: string;
 }
 
 class UpdateQuantityDto {
@@ -54,6 +56,8 @@ export class ShoppingCartController {
       body.productId,
       body.quantity || 1,
       body.variantId,
+      body.phoneModelId,
+      body.phoneModelName,
     );
   }
 

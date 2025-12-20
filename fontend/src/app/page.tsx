@@ -373,6 +373,57 @@ export default function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════════════
+          DESIGN YOUR OWN CASE - CTA BANNER
+      ═══════════════════════════════════════════════════════════════════════════ */}
+      <section className="py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 p-8 md:p-12">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="text-center md:text-left">
+                <div className="inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium mb-4">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Tính năng mới</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  🎨 Tự Thiết Kế Ốp Lưng Của Bạn
+                </h2>
+                <p className="text-white/90 text-lg max-w-xl">
+                  Upload ảnh yêu thích, thêm chữ và tạo ra chiếc ốp điện thoại độc nhất vô nhị. 
+                  Chúng tôi sẽ in và giao đến tận tay bạn!
+                </p>
+                <ul className="mt-4 space-y-2 text-white/80">
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-300">✓</span> Thiết kế theo ý thích
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-300">✓</span> In ấn chất lượng cao 300dpi
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-300">✓</span> Nhiều mẫu điện thoại
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <div className="text-8xl mb-4"></div>
+                <Link
+                  href="/design"
+                  className="bg-white text-pink-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all hover:shadow-xl transform hover:scale-105"
+                >
+                  Bắt Đầu Thiết Kế Ngay →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════════
           FEATURED PRODUCTS SECTION
       ═══════════════════════════════════════════════════════════════════════════ */}
       <section className="py-16 px-4 bg-gradient-to-b from-gray-50 to-white">

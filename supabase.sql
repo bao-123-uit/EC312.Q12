@@ -116,6 +116,29 @@ CREATE TABLE public.coupons (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT coupons_pkey PRIMARY KEY (coupon_id)
 );
+CREATE TABLE public.custom_designs (
+  design_id integer NOT NULL DEFAULT nextval('custom_designs_design_id_seq'::regclass),
+  user_id uuid,
+  guest_email character varying,
+  guest_name character varying,
+  guest_phone character varying,
+  template_id integer,
+  phone_model character varying NOT NULL,
+  design_data jsonb NOT NULL,
+  preview_image_url text,
+  high_res_image_url text,
+  status character varying DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying, 'processing'::character varying, 'approved'::character varying, 'rejected'::character varying, 'printed'::character varying]::text[])),
+  admin_notes text,
+  order_id integer,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  submitted_at timestamp without time zone,
+  processed_at timestamp without time zone,
+  CONSTRAINT custom_designs_pkey PRIMARY KEY (design_id),
+  CONSTRAINT custom_designs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT custom_designs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.phone_templates(template_id),
+  CONSTRAINT custom_designs_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+);
 CREATE TABLE public.customer_addresses (
   address_id integer NOT NULL DEFAULT nextval('customer_addresses_address_id_seq'::regclass),
   customer_id integer,
@@ -169,6 +192,19 @@ CREATE TABLE public.design_collections (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT design_collections_pkey PRIMARY KEY (collection_id)
 );
+CREATE TABLE public.design_images (
+  image_id integer NOT NULL DEFAULT nextval('design_images_image_id_seq'::regclass),
+  design_id integer,
+  original_url text NOT NULL,
+  thumbnail_url text,
+  file_name character varying,
+  file_size integer,
+  width integer,
+  height integer,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT design_images_pkey PRIMARY KEY (image_id),
+  CONSTRAINT design_images_design_id_fkey FOREIGN KEY (design_id) REFERENCES public.custom_designs(design_id)
+);
 CREATE TABLE public.flash_sales (
   flash_sale_id integer NOT NULL DEFAULT nextval('flash_sales_flash_sale_id_seq'::regclass),
   sale_name character varying NOT NULL,
@@ -186,6 +222,39 @@ CREATE TABLE public.flash_sales (
   CONSTRAINT flash_sales_pkey PRIMARY KEY (flash_sale_id),
   CONSTRAINT flash_sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
   CONSTRAINT flash_sales_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+);
+CREATE TABLE public.gift_emails (
+  email_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  gift_id uuid,
+  email_type character varying NOT NULL,
+  sent_to character varying NOT NULL,
+  sent_at timestamp with time zone DEFAULT now(),
+  status character varying DEFAULT 'sent'::character varying,
+  CONSTRAINT gift_emails_pkey PRIMARY KEY (email_id),
+  CONSTRAINT gift_emails_gift_id_fkey FOREIGN KEY (gift_id) REFERENCES public.gifts(gift_id)
+);
+CREATE TABLE public.gifts (
+  gift_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sender_id uuid,
+  sender_name character varying NOT NULL,
+  sender_email character varying NOT NULL,
+  sender_message text,
+  recipient_name character varying NOT NULL,
+  recipient_email character varying NOT NULL,
+  recipient_phone character varying,
+  recipient_address text,
+  product_id integer NOT NULL,
+  quantity integer DEFAULT 1,
+  verification_code character varying NOT NULL,
+  status character varying DEFAULT 'pending'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  verified_at timestamp with time zone,
+  claimed_at timestamp with time zone,
+  expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval),
+  notes text,
+  CONSTRAINT gifts_pkey PRIMARY KEY (gift_id),
+  CONSTRAINT gifts_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT gifts_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.inventory (
   inventory_id integer NOT NULL DEFAULT nextval('inventory_inventory_id_seq'::regclass),
@@ -255,8 +324,7 @@ CREATE TABLE public.order_items (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id),
   CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
-  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.orders (
   order_id integer NOT NULL DEFAULT nextval('orders_order_id_seq'::regclass),
@@ -323,6 +391,19 @@ CREATE TABLE public.phone_models (
   display_order integer DEFAULT 0,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT phone_models_pkey PRIMARY KEY (model_id)
+);
+CREATE TABLE public.phone_templates (
+  template_id integer NOT NULL DEFAULT nextval('phone_templates_template_id_seq'::regclass),
+  phone_model character varying NOT NULL,
+  brand character varying NOT NULL,
+  template_image_url text NOT NULL,
+  print_width_mm numeric DEFAULT 70,
+  print_height_mm numeric DEFAULT 150,
+  canvas_width integer DEFAULT 700,
+  canvas_height integer DEFAULT 1500,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT phone_templates_pkey PRIMARY KEY (template_id)
 );
 CREATE TABLE public.product_attributes (
   attribute_id integer NOT NULL DEFAULT nextval('product_attributes_attribute_id_seq'::regclass),
@@ -426,6 +507,8 @@ CREATE TABLE public.products (
   review_count integer DEFAULT 0,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  image_url text,
+  season text,
   CONSTRAINT products_pkey PRIMARY KEY (product_id),
   CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id),
   CONSTRAINT products_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(brand_id)
@@ -553,8 +636,10 @@ CREATE TABLE public.wishlists (
   product_id integer,
   variant_id integer,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  user_id uuid,
   CONSTRAINT wishlists_pkey PRIMARY KEY (wishlist_id),
   CONSTRAINT wishlists_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT wishlists_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
+  CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id),
+  CONSTRAINT wishlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );

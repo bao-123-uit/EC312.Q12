@@ -5,6 +5,8 @@ interface CreateOrderDto {
   items: {
     product_id: number;
     variant_id?: number;
+    phone_model_id?: number;
+    phone_model_name?: string;
     product_name: string;
     quantity: number;
     unit_price: number;
@@ -109,6 +111,8 @@ export class OrderService {
           unit_price: item.unit_price,
           discount_amount: item.discount_amount || 0,
           total_price: item.unit_price * item.quantity - (item.discount_amount || 0),
+          phone_model_id: item.phone_model_id || null,
+          phone_model_name: item.phone_model_name || null,
         });
 
         // THÊM LOG ĐỂ DEBUG
