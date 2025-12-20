@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Query, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Query, Param, Body,UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ProductService } from './product.service';
-
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 @Controller('products')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    // private readonly cloudinaryService: CloudinaryService,
+    private readonly productService: ProductService
+  ) {}
 
   @Get()
   async getProducts(@Query('limit') limit: string = '10') {
@@ -40,4 +44,21 @@ export class ProductController {
   async deleteProduct(@Param('id') id: string) {
     return await this.productService.deleteProduct(parseInt(id));
   }
+
+  // @Post('upload')
+  // @UseInterceptors(FileInterceptor('image'))
+  // async uploadProduct(
+  //   @UploadedFile() file: Express.Multer.File,
+  //   @Body('name') name: string,
+  // ) {
+  //   const imageUrl = await this.cloudinaryService.uploadImage(
+  //     file.buffer,
+  //     'products',
+  //   );
+
+  //   return this.productService.create({
+  //     name,
+  //     image_url: imageUrl,
+  //   });
+  // }
 }
