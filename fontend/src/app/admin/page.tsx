@@ -414,6 +414,12 @@ const AdminDashboard: React.FC = () => {
         product_slug: slug
       };
       
+      // Debug log
+      console.log('=== FRONTEND DEBUG ===');
+      console.log('formData:', formData);
+      console.log('dataToSend:', dataToSend);
+      console.log('image_url:', dataToSend.image_url);
+      
       let productId: number;
       
       if (modalType === 'add') {

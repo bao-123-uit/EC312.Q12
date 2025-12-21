@@ -136,11 +136,48 @@ export class SupabaseService {
   }
 
   async updateProduct(productId: number, productData: any) {
+    console.log('=== SUPABASE UPDATE ===');
+    console.log('Updating product_id:', productId);
+    console.log('Raw data received:', JSON.stringify(productData, null, 2));
+    
+    // Chỉ lấy các field hợp lệ trong bảng products
+    const validFields = [
+      'product_name', 'product_slug', 'category_id', 'brand_id', 'sku',
+      'description', 'short_description', 'price', 'sale_price', 'cost_price',
+      'is_featured', 'is_new', 'is_bestseller', 'is_trending', 'status',
+      'meta_title', 'meta_description', 'meta_keywords', 'image_url', 'season'
+    ];
+    
+    const cleanData: any = {};
+    for (const field of validFields) {
+      if (productData[field] !== undefined) {
+        // Xử lý các giá trị rỗng
+        if (productData[field] === '' || productData[field] === null) {
+          // Cho phép null cho các field optional
+          if (['category_id', 'brand_id', 'sale_price', 'cost_price', 'season', 'image_url'].includes(field)) {
+            cleanData[field] = null;
+          }
+          // Bỏ qua string rỗng cho các field khác
+        } else {
+          cleanData[field] = productData[field];
+        }
+      }
+    }
+    
+    // Thêm updated_at
+    cleanData.updated_at = new Date().toISOString();
+    
+    console.log('Clean data to update:', JSON.stringify(cleanData, null, 2));
+    
     const { data, error } = await this.supabase
       .from('products')
-      .update(productData)
+      .update(cleanData)
       .eq('product_id', productId)
       .select();
+    
+    console.log('Supabase response - data:', JSON.stringify(data, null, 2));
+    console.log('Supabase response - error:', error);
+    
     return { data, error };
   }
 

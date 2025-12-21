@@ -318,55 +318,101 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════════════
           CATEGORIES SECTION
       ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="py-16 px-4">
+      <section className="py-20 px-4 bg-gradient-to-b from-gray-50 via-white to-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {/* Header với animation */}
+          <div className="text-center mb-16 relative">
+            <div className="absolute inset-0 flex items-center justify-center -z-10">
+              <div className="w-72 h-72 bg-pink-200/30 rounded-full blur-3xl animate-pulse" />
+            </div>
+            <span className="inline-block px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-sm font-semibold rounded-full mb-4 shadow-lg">
+               Khám Phá Ngay
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 mb-4">
               Danh Mục Sản Phẩm
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Khám phá đa dạng phụ kiện điện thoại chất lượng cao
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+              Khám phá đa dạng phụ kiện điện thoại chất lượng cao với thiết kế độc đáo
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
-            {categories.slice(0, 6).map((cat: any, index) => (
-              <Link
-                key={cat.category_id}
-                href={`/shop?category=${encodeURIComponent(cat.category_name)}`}
-                className="group relative"
-              >
-                <div className={`
-                  relative overflow-hidden rounded-2xl p-6 h-44
-                  bg-gradient-to-br ${CATEGORY_GRADIENTS[index % CATEGORY_GRADIENTS.length]}
-                  transform transition-all duration-300
-                  hover:scale-105 hover:shadow-2xl
-                  cursor-pointer
-                `}>
-                  {/* Decorative circles */}
-                  <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
-                  <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-white/10 rounded-full" />
-                  
-                  <div className="relative z-10 h-full flex flex-col items-center justify-center text-white text-center">
-                    <h3 className="font-bold text-base mb-2 line-clamp-2">
-                      {cat.category_name}
-                    </h3>
-                    <span className="text-sm opacity-80">
-                      {cat.product_count || 0} sản phẩm
-                    </span>
+          {/* Categories Grid - Thiết kế mới */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+            {categories.slice(0, 8).map((cat: any, index) => {
+              const icons = Object.values(CATEGORY_ICON_MAP);
+              const gradients = [
+                'from-rose-400 via-pink-500 to-pink-600',
+                'from-violet-400 via-purple-500 to-purple-600',
+                'from-blue-400 via-cyan-500 to-cyan-600',
+                'from-emerald-400 via-green-500 to-green-600',
+                'from-amber-400 via-orange-500 to-orange-600',
+                'from-fuchsia-400 via-pink-500 to-rose-600',
+                'from-indigo-400 via-blue-500 to-blue-600',
+                'from-teal-400 via-cyan-500 to-teal-600',
+              ];
+              
+              return (
+                <Link
+                  key={cat.category_id}
+                  href={`/shop?category=${encodeURIComponent(cat.category_name)}`}
+                  className="group perspective-1000"
+                >
+                  <div className={`
+                    relative h-52 rounded-3xl overflow-hidden
+                    bg-gradient-to-br ${gradients[index % gradients.length]}
+                    transform transition-all duration-500 ease-out
+                    group-hover:scale-[1.02] group-hover:-rotate-1
+                    group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)]
+                    shadow-xl
+                  `}>
+                    {/* Animated background patterns */}
+                    <div className="absolute inset-0 opacity-30">
+                      <div className="absolute top-0 right-0 w-40 h-40 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
+                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/20 rounded-full translate-y-1/2 -translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
+                      <div className="absolute top-1/2 left-1/2 w-24 h-24 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 group-hover:rotate-180 transition-transform duration-1000" />
+                    </div>
+                    
+                    {/* Shimmer effect on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    
+                    {/* Content */}
+                    <div className="relative z-10 h-full flex flex-col items-center justify-center p-6 text-white">
+                      {/* Icon với animation */}
+                      <div className="text-5xl mb-4 transform group-hover:scale-125 group-hover:-rotate-12 transition-all duration-300 drop-shadow-lg">
+                        {icons[index % icons.length]}
+                      </div>
+                      
+                      {/* Category name */}
+                      <h3 className="font-bold text-xl mb-2 text-center line-clamp-2 drop-shadow-md group-hover:scale-105 transition-transform">
+                        {cat.category_name}
+                      </h3>
+                      
+                      {/* Product count với pill design */}
+                      <div className="flex items-center gap-2 bg-white/25 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium shadow-inner">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        {cat.product_count || 0} sản phẩm
+                      </div>
+                      
+                      {/* Arrow indicator */}
+                      <div className="absolute bottom-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                        <ArrowRight className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="text-center mt-8">
+          {/* CTA Button */}
+          <div className="text-center mt-12">
             <Link
-              href="/categories"
-              className="inline-flex items-center gap-2 text-pink-600 font-semibold hover:text-pink-700 transition"
+              href="/shop"
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
             >
-              Xem tất cả danh mục
-              <ArrowRight className="w-4 h-4" />
+              <Sparkles className="w-5 h-5" />
+              Xem Tất Cả Danh Mục
+              <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
         </div>

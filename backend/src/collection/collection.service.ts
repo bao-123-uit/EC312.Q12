@@ -207,23 +207,29 @@ export class CollectionService {
 
   // Lấy các bộ sưu tập của một sản phẩm
   async getProductCollections(productId: number) {
-    const { data, error } = await this.supabase
-      .from('product_collections')
-      .select(`
-        collection_id,
-        collections (
+    try {
+      const { data, error } = await this.supabase
+        .from('product_collections')
+        .select(`
           collection_id,
-          collection_name,
-          collection_slug,
-          collection_type
-        )
-      `)
-      .eq('product_id', productId);
+          design_collections (
+            collection_id,
+            collection_name,
+            collection_slug,
+            is_active
+          )
+        `)
+        .eq('product_id', productId);
 
-    if (error) {
-      throw new Error(error.message);
+      if (error) {
+        console.error('getProductCollections error:', error.message);
+        return []; // Trả về mảng rỗng thay vì throw error
+      }
+      return data || [];
+    } catch (error: any) {
+      console.error('getProductCollections error:', error.message);
+      return [];
     }
-    return data;
   }
 
   // Tạo bộ sưu tập mới

@@ -24,8 +24,17 @@ export class ProductService {
   }
 
   async updateProduct(productId: number, productData: any) {
+    console.log('=== UPDATE PRODUCT DEBUG ===');
+    console.log('Product ID:', productId);
+    console.log('Product Data received:', JSON.stringify(productData, null, 2));
+    console.log('image_url value:', productData.image_url);
+    
     const result = await this.supabaseService.updateProduct(productId, productData);
+    
+    console.log('Supabase result:', JSON.stringify(result, null, 2));
+    
     if (result.error) {
+      console.log('Update error:', result.error.message);
       return { success: false, message: result.error.message };
     }
     return { success: true, data: result.data };
