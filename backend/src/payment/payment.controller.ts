@@ -2,6 +2,7 @@ import { Controller, Post, Body, Res, Get, Query } from '@nestjs/common';
 import axios from 'axios';
 import type { Response } from 'express';
 import * as crypto from 'crypto';
+import { PaymentService } from './payment.service';
 
 interface MomoConfig {
   accessKey: string;
@@ -10,8 +11,30 @@ interface MomoConfig {
   endpoint: string;
 }
 
+interface PayOSPaymentItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface CreatePayOSPaymentDto {
+  orderCode: number;
+  amount: number;
+  description: string;
+  items?: PayOSPaymentItem[];
+  cancelUrl?: string;
+  returnUrl?: string;
+  buyerName?: string;
+  buyerEmail?: string;
+  buyerPhone?: string;
+  buyerAddress?: string;
+  expiredAt?: number;
+}
+
 @Controller('payment')
 export class PaymentController {
+  constructor(private readonly paymentService: PaymentService) {}
+
   private momoConfig: MomoConfig = {
     accessKey: 'F8BBA842ECF85',
     secretKey: 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
@@ -36,15 +59,14 @@ export class PaymentController {
       const orderInfo = body.orderInfo || 'Thanh toán đơn hàng GoatTech';
       const redirectUrl = body.redirectUrl || 'http://localhost:3000/payment-result';
       const ipnUrl = body.ipnUrl || 'http://localhost:3001/payment/momo/ipn';
-      const requestType = 'payWithMethod';
-      const amount = String(body.amount || '50000');
+      const requestType = 'captureWallet'; // Đổi sang captureWallet cho test
+      const amount = parseInt(body.amount) || 50000;
       const orderId = body.orderId || `${partnerCode}${Date.now()}`;
       const requestId = orderId;
       const extraData = body.extraData || '';
-      const autoCapture = true;
       const lang = 'vi';
 
-      // Build raw signature theo thứ tự alphabet
+      // Build raw signature theo thứ tự alphabet (amount phải là string trong signature)
       const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
       
       const signature = this.createSignature(rawSignature);
@@ -52,22 +74,22 @@ export class PaymentController {
       console.log('📝 MoMo Payment Request:');
       console.log('- Order ID:', orderId);
       console.log('- Amount:', amount);
+      console.log('- Request Type:', requestType);
       console.log('- Raw Signature:', rawSignature);
 
-      // Build request body
+      // Build request body - amount phải là number
       const requestBody = {
         partnerCode,
         partnerName: 'GoatTech Store',
         storeId: 'GoatTechStore',
         requestId,
-        amount,
+        amount: amount, // Number, không phải string
         orderId,
         orderInfo,
         redirectUrl,
         ipnUrl,
         lang,
         requestType,
-        autoCapture,
         extraData,
         signature,
       };
@@ -272,5 +294,195 @@ export class PaymentController {
     const frontendUrl = `http://localhost:3000/payment-result?resultCode=${resultCode}&orderId=${orderId}&message=${encodeURIComponent(message || '')}&transId=${transId || ''}&amount=${amount || ''}`;
     
     return res.redirect(frontendUrl);
+  }
+
+  // ==================== PAYOS PAYMENT ====================
+
+  // POST /payment/payos - Tạo thanh toán PayOS
+  @Post('payos')
+  async createPayOSPayment(@Body() body: CreatePayOSPaymentDto, @Res() res: Response) {
+    try {
+      const orderCode = body.orderCode || Date.now();
+      const amount = body.amount || 50000;
+      const description = body.description || 'Thanh toán đơn hàng GoatTech';
+      const cancelUrl = body.cancelUrl || 'http://localhost:3000/payment-cancel';
+      const returnUrl = body.returnUrl || 'http://localhost:3000/payment-result';
+
+      console.log('📝 PayOS Payment Request:');
+      console.log('- Order Code:', orderCode);
+      console.log('- Amount:', amount);
+      console.log('- Description:', description);
+
+      const result = await this.paymentService.createPayOSPayment({
+        orderCode,
+        amount,
+        description,
+        items: body.items || [],
+        cancelUrl,
+        returnUrl,
+        buyerName: body.buyerName,
+        buyerEmail: body.buyerEmail,
+        buyerPhone: body.buyerPhone,
+        buyerAddress: body.buyerAddress,
+        expiredAt: body.expiredAt,
+      });
+
+      console.log('✅ PayOS Response:', result);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Payment Error:', error?.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi tạo thanh toán PayOS',
+        error: error?.message,
+      });
+    }
+  }
+
+  // POST /payment/payos/webhook - Nhận webhook từ PayOS
+  @Post('payos/webhook')
+  async handlePayOSWebhook(@Body() body: any, @Res() res: Response) {
+    try {
+      console.log('🔔 PayOS Webhook Received:', body);
+
+      const result = await this.paymentService.handlePayOSWebhook(body);
+
+      console.log('✅ Webhook Processed:', result);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Webhook Error:', error?.message);
+      return res.status(400).json({
+        success: false,
+        message: error?.message || 'Invalid webhook',
+      });
+    }
+  }
+
+  // GET /payment/payos/check-status - Kiểm tra trạng thái thanh toán PayOS
+  @Get('payos/check-status')
+  async checkPayOSStatus(@Query('orderCode') orderCode: string, @Res() res: Response) {
+    try {
+      if (!orderCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'orderCode is required',
+        });
+      }
+
+      console.log('📊 Checking PayOS Payment Status:', orderCode);
+
+      const result = await this.paymentService.getPayOSPaymentInfo(orderCode);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Check Status Error:', error?.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi kiểm tra trạng thái PayOS',
+        error: error?.message,
+      });
+    }
+  }
+
+  // POST /payment/payos/cancel - Hủy thanh toán PayOS
+  @Post('payos/cancel')
+  async cancelPayOSPayment(@Body() body: { orderCode: string; reason?: string }, @Res() res: Response) {
+    try {
+      const { orderCode, reason } = body;
+
+      if (!orderCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'orderCode is required',
+        });
+      }
+
+      console.log('🚫 Cancelling PayOS Payment:', orderCode);
+
+      const result = await this.paymentService.cancelPayOSPayment(orderCode, reason);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Cancel Error:', error?.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi hủy thanh toán PayOS',
+        error: error?.message,
+      });
+    }
+  }
+
+  // GET /payment/payos/result - Trang kết quả thanh toán PayOS (redirect)
+  @Get('payos/result')
+  async payOSResult(@Query() query: any, @Res() res: Response) {
+    console.log('🔄 PayOS Payment Result Query:', query);
+    
+    const { code, id, cancel, status, orderCode } = query;
+    
+    // Redirect về frontend với kết quả
+    const frontendUrl = `http://localhost:3000/payment-result?gateway=payos&code=${code || ''}&id=${id || ''}&cancel=${cancel || ''}&status=${status || ''}&orderCode=${orderCode || ''}`;
+    
+    return res.redirect(frontendUrl);
+  }
+
+  // POST /payment/payos/verify-return - Xác minh và cập nhật trạng thái từ return URL
+  @Post('payos/verify-return')
+  async verifyPayOSReturn(
+    @Body() body: { orderCode: string | number; orderNumber: string },
+    @Res() res: Response,
+  ) {
+    try {
+      const { orderCode, orderNumber } = body;
+
+      if (!orderCode || !orderNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'orderCode và orderNumber là bắt buộc',
+        });
+      }
+
+      console.log('📊 Verifying PayOS Return:', { orderCode, orderNumber });
+
+      const result = await this.paymentService.handlePayOSReturn(orderCode, orderNumber);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Verify Return Error:', error?.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi xác minh thanh toán PayOS',
+        error: error?.message,
+      });
+    }
+  }
+
+  // POST /payment/payos/confirm-webhook - Xác nhận webhook URL với PayOS
+  @Post('payos/confirm-webhook')
+  async confirmPayOSWebhook(@Body() body: { webhookUrl: string }, @Res() res: Response) {
+    try {
+      const { webhookUrl } = body;
+
+      if (!webhookUrl) {
+        return res.status(400).json({
+          success: false,
+          message: 'webhookUrl is required',
+        });
+      }
+
+      console.log('🔗 Confirming PayOS Webhook URL:', webhookUrl);
+
+      const result = await this.paymentService.confirmPayOSWebhook(webhookUrl);
+
+      return res.status(200).json(result);
+    } catch (error: any) {
+      console.error('❌ PayOS Confirm Webhook Error:', error?.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi xác nhận webhook PayOS',
+        error: error?.message,
+      });
+    }
   }
 }

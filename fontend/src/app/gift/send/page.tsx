@@ -1,10 +1,11 @@
-'use client';
+  'use client';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchProductById, sendGift, SendGiftData } from '@/lib/api-client';
-import { Gift, Heart, ArrowLeft, Send, Loader2, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { fetchProductById, createGiftPayment, CreateGiftPaymentData } from '@/lib/api-client';
+import { Gift, Heart, ArrowLeft, Send, Loader2, CheckCircle, AlertCircle, Sparkles, CreditCard } from 'lucide-react';
+
 import TopBanner from '@/components/layout/TopBanner';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -72,17 +73,29 @@ export default function SendGiftPage() {
     try {
       setSending(true);
       
-      const giftData: SendGiftData = {
-        ...formData,
+      const giftData: CreateGiftPaymentData = {
+        senderName: formData.senderName,
+        senderEmail: formData.senderEmail,
+        senderMessage: formData.senderMessage,
+        recipientName: formData.recipientName,
+        recipientEmail: formData.recipientEmail,
+        recipientPhone: formData.recipientPhone,
         productId: parseInt(productId),
         quantity: 1,
       };
 
-      await sendGift(giftData);
-      setSuccess(true);
+      // Tạo thanh toán PayOS
+      const result = await createGiftPayment(giftData);
+      
+      if (result.success && result.checkoutUrl) {
+        // Chuyển đến trang thanh toán PayOS
+        window.location.href = result.checkoutUrl;
+      } else {
+        setError('Không thể tạo thanh toán. Vui lòng thử lại.');
+      }
     } catch (err: any) {
-      console.error('Send gift error:', err);
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi gửi quà');
+      console.error('Create gift payment error:', err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo thanh toán');
     } finally {
       setSending(false);
     }
@@ -95,66 +108,6 @@ export default function SendGiftPage() {
       product.product_images?.[0]?.image_url ||
       '';
   };
-
-  // Success screen
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
-        <TopBanner />
-        <Header />
-        
-        <div className="max-w-2xl mx-auto px-4 py-20">
-          <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              🎁 Quà Tặng Đã Được Gửi!
-            </h1>
-            
-            <p className="text-gray-600 mb-8">
-              Email thông báo đã được gửi đến <strong>{formData.recipientEmail}</strong>. 
-              Người nhận sẽ nhận được mã xác nhận để nhận quà.
-            </p>
-
-            <div className="bg-pink-50 rounded-2xl p-6 mb-8">
-              <p className="text-pink-800">
-                💌 Tin nhắn của bạn: <em>"{formData.senderMessage || 'Chúc bạn vui vẻ!'}"</em>
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/shop"
-                className="px-6 py-3 bg-pink-600 text-white rounded-full font-semibold hover:bg-pink-700 transition"
-              >
-                Tiếp Tục Mua Sắm
-              </Link>
-              <button
-                onClick={() => {
-                  setSuccess(false);
-                  setFormData({
-                    senderName: '',
-                    senderEmail: '',
-                    senderMessage: '',
-                    recipientName: '',
-                    recipientEmail: '',
-                    recipientPhone: '',
-                  });
-                }}
-                className="px-6 py-3 border-2 border-pink-600 text-pink-600 rounded-full font-semibold hover:bg-pink-50 transition"
-              >
-                Gửi Quà Khác
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
@@ -181,7 +134,7 @@ export default function SendGiftPage() {
             Tặng Quà Cho Người Thân Yêu
           </h1>
           <p className="text-gray-600 max-w-xl mx-auto">
-            Chọn sản phẩm, điền thông tin người nhận và gửi yêu thương qua email
+            Chọn sản phẩm, điền thông tin người nhận và thanh toán để gửi quà
           </p>
         </div>
 
@@ -374,6 +327,18 @@ export default function SendGiftPage() {
                 </div>
               )}
 
+              {/* Price Info */}
+              {product && (
+                <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700">Giá trị quà tặng:</span>
+                    <span className="text-xl font-bold text-pink-600">
+                      {(product.sale_price || product.price).toLocaleString('vi-VN')}₫
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Submit */}
               <button
                 type="submit"
@@ -383,18 +348,18 @@ export default function SendGiftPage() {
                 {sending ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Đang gửi...
+                    Đang xử lý...
                   </>
                 ) : (
                   <>
-                    <Send className="w-5 h-5" />
-                    Gửi Quà Tặng
+                    <CreditCard className="w-5 h-5" />
+                    Thanh Toán & Gửi Quà
                   </>
                 )}
               </button>
 
               <p className="text-center text-sm text-gray-500">
-                🔒 Thông tin của bạn được bảo mật an toàn
+                💳 Thanh toán qua PayOS - Bạn sẽ được chuyển đến trang thanh toán
               </p>
             </form>
           </div>

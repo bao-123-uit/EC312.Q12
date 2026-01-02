@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/app/context/cart-context';
 import { addToShoppingCart } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ interface AddToCartButtonProps {
 
 export function AddToCartButton({ productId }: AddToCartButtonProps) {
   const { user, isAuthenticated } = useAuth();
+  const { increaseCart, refreshCart } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -35,14 +37,20 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
     setLoading(true);
     try {
       // 3️⃣ Gọi backend
-      await addToShoppingCart({
-        // customer_id: user.id,
+      const result = await addToShoppingCart({
+        userId: user.id,
         productId,
         quantity: 1,
       });
 
-      // 4️⃣ Đồng bộ giỏ hàng (header, cart badge…)
-      window.dispatchEvent(new Event('cartUpdated'));
+      // 4️⃣ Nếu thành công, cập nhật UI ngay lập tức
+      if (result.success !== false) {
+        increaseCart(1); // Tăng số ngay trên UI
+        // Dispatch event để các component khác biết
+        window.dispatchEvent(new Event('cartUpdated'));
+      } else {
+        alert(result.message || 'Không thể thêm vào giỏ hàng');
+      }
     } catch (error) {
       console.error('Add to cart error:', error);
       alert('Không thể thêm vào giỏ hàng, vui lòng thử lại');

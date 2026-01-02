@@ -396,7 +396,7 @@ CREATE TABLE public.phone_templates (
   template_id integer NOT NULL DEFAULT nextval('phone_templates_template_id_seq'::regclass),
   phone_model character varying NOT NULL,
   brand character varying NOT NULL,
-  template_image_url text NOT NULL,
+  template_image_url text,
   print_width_mm numeric DEFAULT 70,
   print_height_mm numeric DEFAULT 150,
   canvas_width integer DEFAULT 700,

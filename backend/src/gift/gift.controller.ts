@@ -24,6 +24,23 @@ class SendGiftDto {
   quantity?: number;
 }
 
+class CreateGiftPaymentDto {
+  senderName: string;
+  senderEmail: string;
+  senderMessage?: string;
+  senderId?: string;
+  recipientName: string;
+  recipientEmail: string;
+  recipientPhone?: string;
+  productId: number;
+  quantity?: number;
+}
+
+class VerifyGiftPaymentDto {
+  giftId: string;
+  orderCode: string;
+}
+
 class VerifyGiftDto {
   giftId: string;
   verificationCode: string;
@@ -39,7 +56,21 @@ class ClaimGiftDto {
 export class GiftController {
   constructor(private readonly giftService: GiftService) {}
 
-  // POST /gift/send - Gửi quà tặng
+  // POST /gift/create-payment - Tạo thanh toán PayOS cho quà tặng
+  @Post('create-payment')
+  @HttpCode(HttpStatus.CREATED)
+  async createGiftPayment(@Body() dto: CreateGiftPaymentDto) {
+    return this.giftService.createGiftPayment(dto);
+  }
+
+  // POST /gift/verify-payment - Xác minh thanh toán và gửi email
+  @Post('verify-payment')
+  @HttpCode(HttpStatus.OK)
+  async verifyGiftPayment(@Body() dto: VerifyGiftPaymentDto) {
+    return this.giftService.verifyGiftPayment(dto.giftId, dto.orderCode);
+  }
+
+  // POST /gift/send - Gửi quà tặng (cũ - không cần thanh toán)
   @Post('send')
   @HttpCode(HttpStatus.CREATED)
   async sendGift(@Body() dto: SendGiftDto) {

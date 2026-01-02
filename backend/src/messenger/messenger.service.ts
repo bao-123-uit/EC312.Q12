@@ -91,7 +91,9 @@ export class MessengerService {
           description,
           image_url,
           status,
+          category_id,
           categories (
+            category_id,
             category_name
           ),
           product_variants (
@@ -135,6 +137,8 @@ export class MessengerService {
             colors: colors.length > 0 ? [...new Set(colors)] as string[] : ['Mặc định'], // Unique colors
             image_url: p.image_url,
             stock_quantity: totalStock,
+            category_id: p.category_id || p.categories?.category_id,
+            category_name: p.categories?.category_name || 'Khác',
           };
         });
 
@@ -340,7 +344,7 @@ export class MessengerService {
         await this.sendWelcomeMessage(senderId);
         break;
       case 'VIEW_PRODUCTS':
-        await this.sendProductList(senderId);
+        await this.sendCategoryList(senderId);
         break;
       case 'VIEW_ORDERS':
         await this.sendOrderHistory(senderId);
@@ -349,10 +353,23 @@ export class MessengerService {
         await this.sendSupportInfo(senderId);
         break;
       default:
+        // Xử lý chọn danh mục
+        if (payload.startsWith('CATEGORY_')) {
+          const categoryId = payload.replace('CATEGORY_', '');
+          if (categoryId === 'ALL') {
+            await this.sendProductListByCategory(senderId);
+          } else {
+            await this.sendProductListByCategory(senderId, parseInt(categoryId));
+          }
+        }
         // Xử lý chọn sản phẩm
-        if (payload.startsWith('PRODUCT_')) {
+        else if (payload.startsWith('PRODUCT_')) {
           const productId = payload.replace('PRODUCT_', '');
           await this.handleProductSelection(senderId, productId);
+        }
+        // Quay lại danh mục
+        else if (payload === 'BACK_TO_CATEGORY') {
+          await this.sendCategoryList(senderId);
         }
         break;
     }
@@ -371,6 +388,23 @@ export class MessengerService {
     }
     if (payload === 'CANCEL_ORDER') {
       await this.cancelOrder(senderId);
+      return;
+    }
+
+    // Xử lý chọn danh mục
+    if (payload.startsWith('CATEGORY_')) {
+      const categoryId = payload.replace('CATEGORY_', '');
+      if (categoryId === 'ALL') {
+        await this.sendProductListByCategory(senderId);
+      } else {
+        await this.sendProductListByCategory(senderId, parseInt(categoryId));
+      }
+      return;
+    }
+
+    // Xử lý quay lại danh mục
+    if (payload === 'BACK_TO_CATEGORY') {
+      await this.sendCategoryList(senderId);
       return;
     }
 
@@ -404,7 +438,7 @@ export class MessengerService {
 
     // Xử lý menu sản phẩm
     if (payload === 'MENU_PRODUCTS' || payload === 'VIEW_PRODUCTS') {
-      await this.sendProductList(senderId);
+      await this.sendCategoryList(senderId);
       return;
     }
 
@@ -444,7 +478,7 @@ export class MessengerService {
     }
 
     if (['sản phẩm', 'xem sản phẩm', 'mua hàng', 'products'].includes(normalizedText)) {
-      await this.sendProductList(senderId);
+      await this.sendCategoryList(senderId);
       return;
     }
 
@@ -465,6 +499,25 @@ export class MessengerService {
 
     // Xử lý theo trạng thái conversation
     switch (session.state) {
+      case ConversationState.WAITING_PRODUCT: {
+        // Cho phép chọn sản phẩm bằng số thứ tự
+        const allProducts = await this.loadProductsFromDatabase();
+        let products = allProducts;
+        // Nếu vừa chọn danh mục, lọc theo danh mục
+        if (session.selectedCategory && typeof session.selectedCategory.id === 'number') {
+          products = allProducts.filter((p) => p.category_id === session.selectedCategory!.id);
+        }
+        const idx = parseInt(text.trim(), 10);
+        if (!isNaN(idx) && idx >= 1 && idx <= products.length) {
+          const product = products[idx - 1];
+          await this.handleProductSelection(senderId, product.id);
+          break;
+        }
+        // Nếu không phải số thứ tự, gửi lại danh sách
+        await this.sendMessage(senderId, { text: 'Vui lòng nhập số thứ tự sản phẩm hoặc chọn bên dưới!' });
+        await this.sendProductListByCategory(senderId, session.selectedCategory?.id);
+        break;
+      }
       case ConversationState.WAITING_QUANTITY:
         await this.handleQuantityInput(senderId, text);
         break;
@@ -524,7 +577,135 @@ Bạn muốn làm gì hôm nay?`;
   }
 
   /**
-   * Gửi danh sách sản phẩm
+   * Gửi danh sách danh mục
+   */
+  private async sendCategoryList(senderId: string): Promise<void> {
+    // Cập nhật trạng thái
+    this.updateUserSession(senderId, { state: ConversationState.WAITING_CATEGORY });
+
+    // Lấy sản phẩm từ database
+    const products = await this.loadProductsFromDatabase();
+
+    if (products.length === 0) {
+      await this.sendMessage(senderId, {
+        text: '😔 Hiện tại chưa có sản phẩm nào. Vui lòng quay lại sau!',
+      });
+      await this.sendMainMenu(senderId);
+      return;
+    }
+
+    // Lấy danh sách danh mục unique
+    const categoriesMap = new Map<number, string>();
+    products.forEach((p) => {
+      if (p.category_id && p.category_name) {
+        categoriesMap.set(p.category_id, p.category_name);
+      }
+    });
+
+    const categories = Array.from(categoriesMap.entries()).map(([id, name]) => ({ id, name }));
+
+    if (categories.length === 0) {
+      // Nếu không có danh mục, gửi tất cả sản phẩm
+      await this.sendProductList(senderId);
+      return;
+    }
+
+    // Giới hạn 10 danh mục (Facebook quick reply tối đa 13)
+    const displayCategories = categories.slice(0, 10);
+
+    const categoryText = ` DANH MỤC SẢN PHẨM 
+
+${displayCategories.map((c, i) => `${i + 1}.  ${c.name}`).join('\n')}
+
+Chọn danh mục bạn muốn xem:`;
+
+    const quickReplies: QuickReply[] = displayCategories.map((c) => ({
+      content_type: 'text' as const,
+      title: this.truncateText(` ${c.name}`, 20),
+      payload: `CATEGORY_${c.id}`,
+    }));
+
+    // Thêm nút "Xem tất cả"
+    quickReplies.push({
+      content_type: 'text' as const,
+      title: '📋 Xem tất cả',
+      payload: 'CATEGORY_ALL',
+    });
+
+    await this.sendMessage(senderId, {
+      text: categoryText,
+      quick_replies: quickReplies,
+    });
+  }
+
+  /**
+   * Gửi danh sách sản phẩm theo danh mục
+   */
+  private async sendProductListByCategory(senderId: string, categoryId?: number): Promise<void> {
+    // Cập nhật trạng thái và selectedCategory
+    if (categoryId) {
+      // Lấy tên danh mục
+      const allProducts = await this.loadProductsFromDatabase();
+      const productInCat = allProducts.find((p) => p.category_id === categoryId);
+      const catName = productInCat?.category_name || 'Danh mục';
+      this.updateUserSession(senderId, { state: ConversationState.WAITING_PRODUCT, selectedCategory: { id: categoryId, name: catName } });
+    } else {
+      // Xem tất cả: xóa selectedCategory
+      this.updateUserSession(senderId, { state: ConversationState.WAITING_PRODUCT, selectedCategory: undefined });
+    }
+
+    // Lấy sản phẩm từ database
+    const allProducts = await this.loadProductsFromDatabase();
+
+    // Lọc theo danh mục nếu có
+    const products = categoryId 
+      ? allProducts.filter((p) => p.category_id === categoryId)
+      : allProducts;
+
+    if (products.length === 0) {
+      await this.sendMessage(senderId, {
+        text: '😔 Danh mục này chưa có sản phẩm. Vui lòng chọn danh mục khác!',
+      });
+      await this.sendCategoryList(senderId);
+      return;
+    }
+
+    const categoryName = categoryId 
+      ? products[0]?.category_name || 'Danh mục'
+      : 'TẤT CẢ';
+
+    // Hiển thị TẤT CẢ sản phẩm trong text
+    const productText = `📱 SẢN PHẨM - ${categoryName} 📱
+
+${products.map((p, i) => `${i + 1}. ${p.emoji} ${p.name} - ${this.formatPrice(p.price)}`).join('\n')}
+
+Chọn sản phẩm bạn muốn mua (nhập số thứ tự hoặc chọn bên dưới):`;
+
+    // Quick replies chỉ hiển thị tối đa 10 (giới hạn Facebook là 13)
+    const displayProducts = products.slice(0, 10);
+
+    // Rút gọn tên nếu quá dài (Facebook giới hạn 20 ký tự cho title)
+    const quickReplies: QuickReply[] = displayProducts.map((p) => ({
+      content_type: 'text' as const,
+      title: this.truncateText(`${p.emoji} ${p.name}`, 20),
+      payload: `PRODUCT_${p.id}`,
+    }));
+
+    // Thêm nút quay lại danh mục
+    quickReplies.push({
+      content_type: 'text' as const,
+      title: '⬅️ Quay lại',
+      payload: 'BACK_TO_CATEGORY',
+    });
+
+    await this.sendMessage(senderId, {
+      text: productText,
+      quick_replies: quickReplies,
+    });
+  }
+
+  /**
+   * Gửi danh sách sản phẩm (giữ lại cho tương thích)
    */
   private async sendProductList(senderId: string): Promise<void> {
     // Cập nhật trạng thái
@@ -548,6 +729,7 @@ Bạn muốn làm gì hôm nay?`;
 
 ${displayProducts.map((p, i) => `${i + 1}. ${p.emoji} ${p.name} - ${this.formatPrice(p.price)}`).join('\n')}
 
+${products.length > 10 ? `\n📌 Hiển thị ${displayProducts.length}/${products.length} sản phẩm. Chọn danh mục để xem thêm!\n` : ''}
 Chọn sản phẩm bạn muốn mua:`;
 
     // Rút gọn tên nếu quá dài (Facebook giới hạn 20 ký tự cho title)
@@ -580,7 +762,7 @@ Chọn sản phẩm bạn muốn mua:`;
     
     if (!product) {
       await this.sendMessage(senderId, { text: '❌ Sản phẩm không tồn tại. Vui lòng chọn lại.' });
-      await this.sendProductList(senderId);
+      await this.sendCategoryList(senderId);
       return;
     }
 
@@ -946,7 +1128,7 @@ Bạn xác nhận đặt hàng?`;
       await this.sendMessage(senderId, {
         text: '❌ Thông tin đơn hàng không đầy đủ. Vui lòng bắt đầu lại.',
       });
-      await this.sendProductList(senderId);
+      await this.sendCategoryList(senderId);
       return;
     }
 
@@ -1328,7 +1510,13 @@ Nhân viên sẽ hỗ trợ bạn sớm nhất! ❤️`,
 
       this.logger.log(`Đã gửi tin nhắn đến ${recipientId}: ${response.status}`);
     } catch (error) {
-      this.logger.error(`Lỗi gửi tin nhắn: ${error.response?.data || error.message}`);
+      // Log chi tiết lỗi từ Facebook API
+      const errorData = error.response?.data;
+      if (errorData) {
+        this.logger.error(`Lỗi gửi tin nhắn - Facebook API: ${JSON.stringify(errorData)}`);
+      } else {
+        this.logger.error(`Lỗi gửi tin nhắn: ${error.message}`);
+      }
       throw error;
     }
   }

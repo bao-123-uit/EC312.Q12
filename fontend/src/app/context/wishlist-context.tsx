@@ -133,10 +133,17 @@ export const WishlistProvider = ({
    *  Load wishlist lần đầu khi app mount
    */
   useEffect(() => {
-    // Chỉ load nếu đã đăng nhập
+    // Chỉ load nếu đã đăng nhập và có access_token
     const customerData = localStorage.getItem('customer');
     if (customerData) {
-      refreshWishlist();
+      try {
+        const customer = JSON.parse(customerData);
+        if (customer.access_token) {
+          refreshWishlist();
+        }
+      } catch {
+        // Ignore parse errors
+      }
     }
   }, [refreshWishlist]);
 
@@ -145,7 +152,18 @@ export const WishlistProvider = ({
     const handleStorageChange = () => {
       const customerData = localStorage.getItem('customer');
       if (customerData) {
-        refreshWishlist();
+        try {
+          const customer = JSON.parse(customerData);
+          if (customer.access_token) {
+            refreshWishlist();
+          } else {
+            setWishedProducts(new Set());
+            setWishlistItems([]);
+          }
+        } catch {
+          setWishedProducts(new Set());
+          setWishlistItems([]);
+        }
       } else {
         setWishedProducts(new Set());
         setWishlistItems([]);
@@ -161,8 +179,20 @@ export const WishlistProvider = ({
     const handleAuthChange = () => {
       const customerData = localStorage.getItem('customer');
       if (customerData) {
-        console.log('🔄 Auth changed - refreshing wishlist');
-        refreshWishlist();
+        try {
+          const customer = JSON.parse(customerData);
+          if (customer.access_token) {
+            console.log('🔄 Auth changed - refreshing wishlist');
+            refreshWishlist();
+          } else {
+            console.log('🔄 Auth changed - clearing wishlist (no token)');
+            setWishedProducts(new Set());
+            setWishlistItems([]);
+          }
+        } catch {
+          setWishedProducts(new Set());
+          setWishlistItems([]);
+        }
       } else {
         console.log('🔄 Auth changed - clearing wishlist');
         setWishedProducts(new Set());

@@ -193,4 +193,22 @@ export class OrderService {
     if (error) return { success: false, message: error.message };
     return { success: true, data };
   }
+
+  /**
+   * Cập nhật trạng thái thanh toán theo order_number
+   */
+  async updatePaymentStatusByOrderNumber(orderNumber: string, paymentStatus: string) {
+    const { data, error } = await this.supabaseService.updatePaymentStatusByOrderNumber(orderNumber, paymentStatus);
+    if (error) return { success: false, message: error.message };
+    return { success: true, data };
+  }
+
+  /**
+   * Cập nhật trạng thái đơn hàng theo order_number
+   */
+  async updateOrderStatusByOrderNumber(orderNumber: string, orderStatus: string) {
+    const { data, error } = await this.supabaseService.updateOrderStatusByOrderNumber(orderNumber, orderStatus);
+    if (error) return { success: false, message: error.message };
+    return { success: true, data };
+  }
 }

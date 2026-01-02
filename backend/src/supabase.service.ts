@@ -281,6 +281,26 @@ export class SupabaseService {
     return { data, error };
   }
 
+  // Cập nhật payment status theo order_number
+  async updatePaymentStatusByOrderNumber(orderNumber: string, paymentStatus: string) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .update({ payment_status: paymentStatus, updated_at: new Date() })
+      .eq('order_number', orderNumber)
+      .select();
+    return { data, error };
+  }
+
+  // Cập nhật order status theo order_number
+  async updateOrderStatusByOrderNumber(orderNumber: string, orderStatus: string) {
+    const { data, error } = await this.supabase
+      .from('orders')
+      .update({ order_status: orderStatus, updated_at: new Date() })
+      .eq('order_number', orderNumber)
+      .select();
+    return { data, error };
+  }
+
   // ============ ORDER ITEMS ============
   async getOrderItems(orderId: number) {
     const { data, error } = await this.supabase
@@ -372,6 +392,7 @@ async getOrderWithItems(orderId: number) {
 
   if (orderError) return { data: null, error: orderError };
 
+  // Join products và product_images (ưu tiên ảnh chính)
   const { data: items, error: itemsError } = await this.supabase
     .from('order_items')
     .select(`
@@ -381,16 +402,34 @@ async getOrderWithItems(orderId: number) {
         product_name,
         product_slug,
         price,
-        sale_price
+        sale_price,
+        image_url,
+        product_images (
+          image_url,
+          is_primary
+        )
       )
     `)
     .eq('order_id', orderId);
 
   if (itemsError) return { data: order, error: itemsError };
 
-  return { 
-    data: { ...order, items: items || [] }, 
-    error: null 
+  // Xử lý để lấy image_url ưu tiên ảnh chính
+  const itemsWithImage = (items || []).map((item: any) => {
+    let imageUrl = item.products?.image_url || null;
+    if (item.products?.product_images && item.products.product_images.length > 0) {
+      const primary = item.products.product_images.find((img: any) => img.is_primary) || item.products.product_images[0];
+      if (primary?.image_url) imageUrl = primary.image_url;
+    }
+    return {
+      ...item,
+      image_url: imageUrl,
+    };
+  });
+
+  return {
+    data: { ...order, items: itemsWithImage },
+    error: null
   };
 }
 
@@ -404,6 +443,7 @@ async getOrderWithItemsByNumber(orderNumber: string) {
 
   if (orderError || !order) return { data: null, error: orderError };
 
+  // Join products và product_images (ưu tiên ảnh chính)
   const { data: items, error: itemsError } = await this.supabase
     .from('order_items')
     .select(`
@@ -411,14 +451,32 @@ async getOrderWithItemsByNumber(orderNumber: string) {
       products (
         product_id,
         product_name,
-        product_slug
+        product_slug,
+        image_url,
+        product_images (
+          image_url,
+          is_primary
+        )
       )
     `)
     .eq('order_id', order.order_id);
 
-  return { 
-    data: { ...order, items: items || [] }, 
-    error: itemsError 
+  // Xử lý để lấy image_url ưu tiên ảnh chính
+  const itemsWithImage = (items || []).map((item: any) => {
+    let imageUrl = item.products?.image_url || null;
+    if (item.products?.product_images && item.products.product_images.length > 0) {
+      const primary = item.products.product_images.find((img: any) => img.is_primary) || item.products.product_images[0];
+      if (primary?.image_url) imageUrl = primary.image_url;
+    }
+    return {
+      ...item,
+      image_url: imageUrl,
+    };
+  });
+
+  return {
+    data: { ...order, items: itemsWithImage },
+    error: itemsError
   };
 }
 
@@ -1158,6 +1216,8 @@ async createGift(giftData: {
   product_id: number;
   quantity: number;
   verification_code: string;
+  status?: string;
+  payment_order_code?: string;
 }) {
   const { data, error } = await this.supabase
     .from('gifts')

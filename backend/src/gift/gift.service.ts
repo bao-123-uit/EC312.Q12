@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { SupabaseService } from '../supabase.service';
+import { PaymentService } from '../payment/payment.service';
 import * as nodemailer from 'nodemailer';
 
 export interface SendGiftDto {
@@ -26,11 +27,26 @@ export interface ClaimGiftDto {
   recipientPhone: string;
 }
 
+export interface CreateGiftPaymentDto {
+  senderName: string;
+  senderEmail: string;
+  senderMessage?: string;
+  senderId?: string;
+  recipientName: string;
+  recipientEmail: string;
+  recipientPhone?: string;
+  productId: number;
+  quantity?: number;
+}
+
 @Injectable()
 export class GiftService {
   private transporter: nodemailer.Transporter;
 
-  constructor(private supabaseService: SupabaseService) {
+  constructor(
+    private supabaseService: SupabaseService,
+    private paymentService: PaymentService,
+  ) {
     // Cấu hình email transporter
     // Sử dụng Gmail SMTP - Bạn cần tạo App Password trong Google Account
     console.log('📧 Email config:', {
@@ -52,7 +68,237 @@ export class GiftService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  // Gửi quà tặng
+  // Tạo mã đơn hàng unique
+  private generateOrderNumber(): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `GTMJV${timestamp}${random}`;
+  }
+
+  // ================== PAYOS GIFT PAYMENT ==================
+
+  /**
+   * Tạo thanh toán PayOS cho quà tặng
+   * Lưu thông tin gift tạm thời với status 'pending_payment'
+   */
+  async createGiftPayment(dto: CreateGiftPaymentDto) {
+    // Kiểm tra sản phẩm tồn tại
+    const { data: product, error: productError } = await this.supabaseService.getProductById(dto.productId);
+
+    if (productError || !product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    const amount = product.sale_price || product.price;
+    const orderCode = Date.now(); // Unique order code
+    const quantity = dto.quantity || 1;
+    const totalAmount = amount * quantity;
+
+    // Tạo mã xác nhận trước (sẽ dùng sau khi thanh toán)
+    const verificationCode = this.generateVerificationCode();
+
+    // Lưu gift với status 'pending_payment'
+    const { data: gift, error: giftError } = await this.supabaseService.createGift({
+      sender_id: dto.senderId || undefined,
+      sender_name: dto.senderName,
+      sender_email: dto.senderEmail,
+      sender_message: dto.senderMessage || '',
+      recipient_name: dto.recipientName,
+      recipient_email: dto.recipientEmail,
+      recipient_phone: dto.recipientPhone || '',
+      recipient_address: '',
+      product_id: dto.productId,
+      quantity: quantity,
+      verification_code: verificationCode,
+      status: 'pending_payment', // Chờ thanh toán
+      payment_order_code: String(orderCode), // Lưu orderCode để xác minh sau
+    });
+
+    if (giftError) {
+      console.error('Gift insert error:', giftError);
+      throw new BadRequestException('Không thể tạo quà tặng: ' + giftError.message);
+    }
+
+    // Tạo description ngắn gọn (max 25 ký tự cho PayOS)
+    const description = `QT ${gift.gift_id.slice(0, 20)}`;
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const cancelUrl = `${frontendUrl}/gift/send?productId=${dto.productId}&cancelled=true`;
+    const returnUrl = `${frontendUrl}/gift/payment-result?giftId=${gift.gift_id}&orderCode=${orderCode}`;
+
+    // Tạo thanh toán PayOS
+    const paymentResult = await this.paymentService.createPayOSPayment({
+      orderCode,
+      amount: totalAmount,
+      description,
+      items: [{
+        name: product.product_name.slice(0, 25), // Max 25 chars
+        quantity: quantity,
+        price: amount,
+      }],
+      cancelUrl,
+      returnUrl,
+      buyerName: dto.senderName,
+      buyerEmail: dto.senderEmail,
+      buyerPhone: dto.recipientPhone,
+    });
+
+    return {
+      success: true,
+      message: 'Vui lòng thanh toán để hoàn tất gửi quà',
+      giftId: gift.gift_id,
+      orderCode,
+      amount: totalAmount,
+      checkoutUrl: paymentResult.data?.checkoutUrl,
+      paymentData: paymentResult.data,
+    };
+  }
+
+  /**
+   * Xác minh thanh toán PayOS và gửi email
+   * Gọi sau khi user thanh toán xong và redirect về
+   */
+  async verifyGiftPayment(giftId: string, orderCode: string | number) {
+    // Lấy thông tin gift
+    const { data: gift, error: giftError } = await this.supabaseService.getGiftById(giftId);
+
+    if (giftError || !gift) {
+      throw new NotFoundException('Không tìm thấy quà tặng');
+    }
+
+    if (gift.status !== 'pending_payment') {
+      // Đã xử lý rồi
+      return {
+        success: true,
+        message: 'Quà tặng đã được xử lý',
+        giftId: gift.gift_id,
+        status: gift.status,
+      };
+    }
+
+    // Kiểm tra orderCode có khớp không
+    if (gift.payment_order_code !== String(orderCode)) {
+      throw new BadRequestException('Mã thanh toán không khớp');
+    }
+
+    // Xác minh thanh toán với PayOS
+    const paymentInfo = await this.paymentService.getPayOSPaymentInfo(orderCode);
+
+    if (!paymentInfo.success || paymentInfo.data?.status !== 'PAID') {
+      // Thanh toán chưa hoàn thành
+      return {
+        success: false,
+        message: 'Thanh toán chưa hoàn thành',
+        status: paymentInfo.data?.status,
+      };
+    }
+
+    // Thanh toán thành công -> Tạo đơn hàng và gửi email
+    
+    // Lấy thông tin sản phẩm
+    const { data: product } = await this.supabaseService.getProductById(gift.product_id);
+    const productPrice = product?.sale_price || product?.price || 0;
+    const totalAmount = productPrice * gift.quantity;
+
+    // TẠO ĐƠN HÀNG cho quà tặng
+    let orderId: number | null = null;
+    let orderNumber: string | null = null;
+    try {
+      // Tạo mã đơn hàng
+      orderNumber = this.generateOrderNumber();
+      
+      const { data: order, error: orderError } = await this.supabaseService.createOrder({
+        customer_id: gift.sender_id || null,
+        order_number: orderNumber,
+        subtotal: totalAmount,
+        total_amount: totalAmount,
+        discount_amount: 0,
+        shipping_fee: 0,
+        order_status: 'success', // Đã thanh toán xong
+        payment_status: 'paid',
+        payment_method: 'payos',
+        shipping_full_name: gift.recipient_name,
+        shipping_phone: gift.recipient_phone || '',
+        shipping_address: gift.recipient_address || 'Chờ người nhận cung cấp',
+        customer_note: `🎁 Quà tặng từ ${gift.sender_name} (${gift.sender_email}). Lời nhắn: "${gift.sender_message || 'Không có'}"`,
+      });
+
+      console.log('📦 Create order result:', { order, orderError });
+
+      if (order && !orderError) {
+        const orderData = order as any;
+        orderId = Array.isArray(orderData) ? orderData[0]?.order_id : orderData.order_id;
+        orderNumber = Array.isArray(orderData) ? orderData[0]?.order_number : orderData.order_number;
+
+        // Thêm sản phẩm vào đơn hàng
+        await this.supabaseService.createOrderItem({
+          order_id: orderId,
+          product_id: gift.product_id,
+          product_name: product?.product_name || 'Quà tặng',
+          sku: product?.sku || `GIFT-${gift.gift_id.slice(0, 8)}`,
+          quantity: gift.quantity,
+          unit_price: productPrice,
+          discount_amount: 0,
+          total_price: totalAmount,
+        });
+
+        console.log('✅ Order created for gift:', orderNumber);
+      }
+    } catch (orderErr) {
+      console.error('❌ Error creating order for gift:', orderErr);
+    }
+
+    // Cập nhật gift status
+    await this.supabaseService.updateGiftStatus(giftId, 'sent', {
+      payment_status: 'paid',
+      payment_date: new Date().toISOString(),
+    });
+
+    // Lấy ảnh sản phẩm
+    const productImage = product?.image_url || 
+      product?.product_images?.find((img: any) => img.is_primary)?.image_url ||
+      product?.product_images?.[0]?.image_url ||
+      'https://via.placeholder.com/200';
+
+    // Gửi email cho người nhận
+    try {
+      console.log('📧 Sending gift email after payment to:', gift.recipient_email);
+      await this.sendGiftNotificationEmail({
+        recipientEmail: gift.recipient_email,
+        recipientName: gift.recipient_name,
+        senderName: gift.sender_name,
+        senderMessage: gift.sender_message || '',
+        productName: product?.product_name || 'Quà tặng',
+        productImage: productImage,
+        productPrice: product?.sale_price || product?.price || 0,
+        giftId: gift.gift_id,
+        verificationCode: gift.verification_code,
+      });
+
+      // Lưu lịch sử email
+      await this.supabaseService.createGiftEmail({
+        gift_id: gift.gift_id,
+        email_type: 'notification',
+        sent_to: gift.recipient_email,
+        status: 'sent',
+      });
+
+      console.log('✅ Gift email sent successfully!');
+    } catch (emailError) {
+      console.error('❌ Email send error:', emailError);
+    }
+
+    return {
+      success: true,
+      message: 'Thanh toán thành công! Email đã được gửi đến người nhận.',
+      giftId: gift.gift_id,
+      orderNumber: orderNumber,
+      orderId: orderId,
+      status: 'sent',
+    };
+  }
+
+  // Gửi quà tặng (cũ - giữ lại cho backward compatibility)
   async sendGift(dto: SendGiftDto) {
     // Kiểm tra sản phẩm tồn tại
     const { data: product, error: productError } = await this.supabaseService.getProductById(dto.productId);
@@ -304,31 +550,44 @@ export class GiftService {
       throw new BadRequestException('Vui lòng xác nhận mã trước khi nhận quà');
     }
 
-    // Tạo đơn hàng cho quà tặng
+    // Tạo order_number unique
+    const orderNumber = `GIFT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    // Tạo đơn hàng cho quà tặng - đúng cấu trúc bảng orders
     const { data: order, error: orderError } = await this.supabaseService.createOrder({
-      user_id: null, // Guest order
-      total_amount: 0, // Free gift
-      status: 'confirmed',
-      payment_method: 'gift',
+      order_number: orderNumber,
+      customer_id: gift.sender_id || null, // UUID hoặc null cho guest
+      order_status: 'confirmed',
       payment_status: 'paid',
+      payment_method: 'gift',
+      subtotal: 0,
+      total_amount: 0, // Free gift
+      shipping_fee: 0,
+      discount_amount: 0,
+      shipping_full_name: gift.recipient_name,
+      shipping_phone: dto.recipientPhone,
       shipping_address: dto.recipientAddress,
-      phone: dto.recipientPhone,
-      notes: `Quà tặng từ ${gift.sender_name} (${gift.sender_email})`,
+      customer_note: `Quà tặng từ ${gift.sender_name} (${gift.sender_email})`,
     });
 
     if (orderError || !order) {
-      throw new BadRequestException('Không thể tạo đơn hàng');
+      console.error('Create order error:', orderError);
+      throw new BadRequestException(orderError?.message || 'Không thể tạo đơn hàng');
     }
 
     const orderData = order as any;
     const orderId = Array.isArray(orderData) ? orderData[0]?.order_id : orderData.order_id;
 
-    // Thêm sản phẩm vào đơn hàng
+    // Thêm sản phẩm vào đơn hàng - đúng cấu trúc bảng order_items
     await this.supabaseService.createOrderItem({
       order_id: orderId,
       product_id: gift.product_id,
-      quantity: gift.quantity,
-      price: 0, // Free
+      product_name: gift.products?.product_name || 'Quà tặng',
+      sku: gift.products?.sku || `GIFT-${gift.product_id}`,
+      quantity: gift.quantity || 1,
+      unit_price: 0,
+      discount_amount: 0,
+      total_price: 0, // Free
     });
 
     // Cập nhật trạng thái gift

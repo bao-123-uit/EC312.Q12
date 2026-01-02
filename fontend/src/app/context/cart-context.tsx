@@ -73,26 +73,61 @@ export const CartProvider = ({
   }, []);
 
   /**
-   * Load cart lần đầu khi app mount
+   * Load cart lần đầu khi app mount (chỉ khi đã đăng nhập)
    */
   useEffect(() => {
-    refreshCart();
+    const customerData = localStorage.getItem('customer');
+    if (customerData) {
+      try {
+        const customer = JSON.parse(customerData);
+        if (customer.access_token) {
+          refreshCart();
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
   }, [refreshCart]);
 
   /**
-   *  Lắng nghe event cartUpdated để cập nhật ngay khi thêm vào giỏ
+   *  Lắng nghe event cartUpdated và authChange để cập nhật giỏ hàng
    */
   useEffect(() => {
+    // cartUpdated event chỉ dùng để sync khi cần thiết (ví dụ: mở cart modal)
+    // Không cần gọi refreshCart ở đây vì increaseCart đã cập nhật state rồi
     const handleCartUpdated = () => {
-      refreshCart();
+      // Optional: có thể bỏ comment dòng dưới nếu muốn sync với backend
+      // refreshCart();
+    };
+
+    const handleAuthChange = () => {
+      const customerData = localStorage.getItem('customer');
+      if (customerData) {
+        try {
+          const customer = JSON.parse(customerData);
+          if (customer.access_token) {
+            refreshCart();
+          } else {
+            clearCart();
+          }
+        } catch {
+          clearCart();
+        }
+      } else {
+        clearCart();
+      }
     };
 
     window.addEventListener('cartUpdated', handleCartUpdated);
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
     
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdated);
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', handleAuthChange);
     };
-  }, [refreshCart]);
+  }, [refreshCart, clearCart]);
 
   return (
     <CartContext.Provider

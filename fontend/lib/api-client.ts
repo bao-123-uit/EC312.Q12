@@ -412,7 +412,10 @@ export const deleteCollection = async (id: number) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    // Không log lỗi 401 (token hết hạn/không hợp lệ) vì đã được xử lý trong các hàm
+    if (error.response?.status !== 401) {
+      console.error('API Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   },
 );
@@ -423,23 +426,19 @@ apiClient.interceptors.response.use(
  */
 export const fetchShoppingCart = async () => {
   try {
-    console.log('console log đang được gọi từ fetchShoppingCart');
-    // Lấy token từ localStorage
-    const customerData = localStorage.getItem('customer');
-    console.log(customerData);
-    console.log(getAuthHeaders());
-    
-    if (!customerData) {
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
       return { success: false, message: 'Chưa đăng nhập', data: [] };
     }
-    const customer = JSON.parse(customerData);
-    console.log('Customer ID (UUID):', customer.id);
     
-    const response = await apiClient.get('/shopping-cart', {
-      headers: getAuthHeaders(),
-    });
+    const response = await apiClient.get('/shopping-cart', { headers });
     return response.data;
   } catch (error: any) {
+    // Nếu 401, trả về empty data thay vì throw error
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn', data: [] };
+    }
     console.error('Fetch cart error:', error);
     return {
       success: false,
@@ -461,6 +460,11 @@ export const addToShoppingCart = async (data: {
   phoneModelName?: string;
 }) => {
   try {
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập để thêm vào giỏ hàng' };
+    }
+    
     const response = await apiClient.post(
       '/shopping-cart',
       {
@@ -470,12 +474,13 @@ export const addToShoppingCart = async (data: {
         phoneModelId: data.phoneModelId || null,
         phoneModelName: data.phoneModelName || null,
       },
-      {
-        headers: getAuthHeaders(),
-      }
+      { headers }
     );
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Add to cart error:', error);
     return {
       success: false,
@@ -489,15 +494,20 @@ export const addToShoppingCart = async (data: {
  */
 export const updateShoppingCart = async (cartId: number, quantity: number) => {
   try {
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập' };
+    }
     const response = await apiClient.put(
       `/shopping-cart/${cartId}`,
       { quantity },
-      {
-        headers: getAuthHeaders(),
-      }
+      { headers }
     );
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Update cart error:', error);
     return {
       success: false,
@@ -511,11 +521,16 @@ export const updateShoppingCart = async (cartId: number, quantity: number) => {
  */
 export const deleteShoppingCart = async (cartId: number) => {
   try {
-    const response = await apiClient.delete(`/shopping-cart/${cartId}`, {
-      headers: getAuthHeaders(),
-    });
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập' };
+    }
+    const response = await apiClient.delete(`/shopping-cart/${cartId}`, { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Delete cart item error:', error);
     return {
       success: false,
@@ -529,11 +544,16 @@ export const deleteShoppingCart = async (cartId: number) => {
  */
 export const clearShoppingCart = async () => {
   try {
-    const response = await apiClient.delete('/shopping-cart', {
-      headers: getAuthHeaders(),
-    });
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập' };
+    }
+    const response = await apiClient.delete('/shopping-cart', { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Clear cart error:', error);
     return {
       success: false,
@@ -544,23 +564,21 @@ export const clearShoppingCart = async () => {
 
 /**
  * Helper: Lấy auth headers
+ * Trả về null nếu không có token hợp lệ
  */
-const getAuthHeaders = () => {
+const getAuthHeaders = (): { Authorization: string } | null => {
   const customerData = localStorage.getItem('customer');
-  if (!customerData) return {};
-  console.log('🔍 getAuthHeaders called');
-  console.log('📦 customerData raw:', customerData);
+  if (!customerData) return null;
+  
   try {
     const customer = JSON.parse(customerData);
-    // Nếu có access_token thì dùng, không thì dùng id như là simple auth
-    console.log('✅ Using Authorization Bearer token',customer.access_token);
+    // Chỉ trả về headers nếu có access_token
     if (customer.access_token) {
       return { Authorization: `Bearer ${customer.access_token}` };
     }
-    // Fallback: gửi user-id trong header (backend cần xử lý)
-    return { 'X-User-Id': customer.id };
+    return null;
   } catch {
-    return {};
+    return null;
   }
 };
 
@@ -594,11 +612,16 @@ export const createOrder = async (orderData: {
   customer_note?: string;
 }) => {
   try {
-    const response = await apiClient.post('/orders', orderData, {
-      headers: getAuthHeaders(),
-    });
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập để đặt hàng' };
+    }
+    const response = await apiClient.post('/orders', orderData, { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Create order error:', error);
     return {
       success: false,
@@ -625,11 +648,16 @@ export const fetchOrderByNumber = async (orderNumber: string) => {
  */
 export const fetchMyOrders = async () => {
   try {
-    const response = await apiClient.get('/orders', {
-      headers: getAuthHeaders(),
-    });
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return [];
+    }
+    const response = await apiClient.get('/orders', { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return [];
+    }
     console.error('Fetch orders error:', error);
     return [];
   }
@@ -638,11 +666,18 @@ export const fetchMyOrders = async () => {
 // ============ WISHLIST ============
 export const fetchWishlist = async () => {
   try {
-    const response = await apiClient.get('/wishlist', {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return [];
+    }
+    const response = await apiClient.get('/wishlist', { headers });
     return response.data;
   } catch (error: any) {
+    // Nếu 401, trả về empty array thay vì throw
+    if (error.response?.status === 401) {
+      return [];
+    }
     console.error('Fetch wishlist error:', error);
     return [];
   }
@@ -650,11 +685,18 @@ export const fetchWishlist = async () => {
 
 export const fetchWishlistProductIds = async (): Promise<number[]> => {
   try {
-    const response = await apiClient.get('/wishlist/product-ids', {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return [];
+    }
+    const response = await apiClient.get('/wishlist/product-ids', { headers });
     return response.data;
   } catch (error: any) {
+    // Nếu 401, trả về empty array thay vì throw
+    if (error.response?.status === 401) {
+      return [];
+    }
     console.error('Fetch wishlist product ids error:', error);
     return [];
   }
@@ -662,11 +704,17 @@ export const fetchWishlistProductIds = async (): Promise<number[]> => {
 
 export const addToWishlist = async (productId: number) => {
   try {
-    const response = await apiClient.post(`/wishlist/${productId}`, {}, {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập để thêm vào yêu thích' };
+    }
+    const response = await apiClient.post(`/wishlist/${productId}`, {}, { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Add to wishlist error:', error);
     throw error;
   }
@@ -674,11 +722,17 @@ export const addToWishlist = async (productId: number) => {
 
 export const removeFromWishlist = async (productId: number) => {
   try {
-    const response = await apiClient.delete(`/wishlist/${productId}`, {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập' };
+    }
+    const response = await apiClient.delete(`/wishlist/${productId}`, { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Remove from wishlist error:', error);
     throw error;
   }
@@ -686,11 +740,17 @@ export const removeFromWishlist = async (productId: number) => {
 
 export const toggleWishlist = async (productId: number) => {
   try {
-    const response = await apiClient.post(`/wishlist/toggle/${productId}`, {}, {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return { success: false, message: 'Vui lòng đăng nhập để thêm vào yêu thích' };
+    }
+    const response = await apiClient.post(`/wishlist/toggle/${productId}`, {}, { headers });
     return response.data;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return { success: false, message: 'Phiên đăng nhập hết hạn' };
+    }
     console.error('Toggle wishlist error:', error);
     throw error;
   }
@@ -698,11 +758,17 @@ export const toggleWishlist = async (productId: number) => {
 
 export const checkIsInWishlist = async (productId: number): Promise<boolean> => {
   try {
-    const response = await apiClient.get(`/wishlist/check/${productId}`, {
-      headers: getAuthHeaders(),
-    });
+    // Kiểm tra auth headers trước khi gọi API
+    const headers = getAuthHeaders();
+    if (!headers) {
+      return false;
+    }
+    const response = await apiClient.get(`/wishlist/check/${productId}`, { headers });
     return response.data.isInWishlist;
   } catch (error: any) {
+    if (error.response?.status === 401) {
+      return false;
+    }
     console.error('Check wishlist error:', error);
     return false;
   }
@@ -721,6 +787,30 @@ export interface SendGiftData {
   productId: number;
   quantity?: number;
 }
+
+export interface CreateGiftPaymentData {
+  senderName: string;
+  senderEmail: string;
+  senderMessage?: string;
+  senderId?: string;
+  recipientName: string;
+  recipientEmail: string;
+  recipientPhone?: string;
+  productId: number;
+  quantity?: number;
+}
+
+// Tạo thanh toán PayOS cho quà tặng
+export const createGiftPayment = async (data: CreateGiftPaymentData) => {
+  const response = await apiClient.post('/gift/create-payment', data);
+  return response.data;
+};
+
+// Xác minh thanh toán và gửi email
+export const verifyGiftPayment = async (giftId: string, orderCode: string) => {
+  const response = await apiClient.post('/gift/verify-payment', { giftId, orderCode });
+  return response.data;
+};
 
 export const sendGift = async (data: SendGiftData) => {
   const response = await apiClient.post('/gift/send', data);

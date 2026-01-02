@@ -6,6 +6,7 @@
 // Trạng thái của cuộc hội thoại đặt hàng
 export enum ConversationState {
   IDLE = 'IDLE',                           // Chờ người dùng bắt đầu
+  WAITING_CATEGORY = 'WAITING_CATEGORY',   // Đang chờ chọn danh mục
   WAITING_PRODUCT = 'WAITING_PRODUCT',     // Đang chờ chọn sản phẩm
   WAITING_PHONE_MODEL = 'WAITING_PHONE_MODEL', // Đang chờ chọn dòng máy điện thoại
   WAITING_QUANTITY = 'WAITING_QUANTITY',   // Đang chờ nhập số lượng
@@ -26,6 +27,8 @@ export interface Product {
   colors?: string[];
   image_url?: string;
   stock_quantity?: number;
+  category_id?: number;
+  category_name?: string;
 }
 
 // Thông tin dòng máy điện thoại
@@ -38,6 +41,7 @@ export interface PhoneModelInfo {
 // Dữ liệu phiên đặt hàng của khách
 export interface UserSession {
   state: ConversationState;
+  selectedCategory?: { id: number; name: string };
   selectedProduct?: Product;
   selectedPhoneModel?: PhoneModelInfo;
   quantity?: number;

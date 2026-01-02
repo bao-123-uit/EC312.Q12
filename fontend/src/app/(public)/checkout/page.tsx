@@ -10,6 +10,7 @@ import {
   clearShoppingCart,
   createMomoPayment,
 } from '@/lib/api-client';
+import { createPayOSPayment } from '@/lib/api/payment.api';
 import {
   ArrowLeft,
   CreditCard,
@@ -22,6 +23,7 @@ import {
   Shield,
   AlertCircle,
   Check,
+  Wallet,
 } from 'lucide-react';
 
 interface CartItem {
@@ -258,6 +260,42 @@ export default function CheckoutPage() {
           console.error('MoMo payment error:', momoError);
           // Vẫn chuyển đến trang order nếu MoMo lỗi, để user có thể thanh toán sau
           alert(`Lỗi thanh toán MoMo: ${momoError.message}. Đơn hàng đã được tạo, bạn có thể thanh toán sau.`);
+        }
+      }
+
+      // ✅ Nếu chọn thanh toán PayOS -> Gọi API PayOS và redirect
+      if (paymentMethod === 'payos') {
+        try {
+          // Tạo orderCode từ timestamp để đảm bảo unique
+          const orderCode = Date.now();
+          
+          const payosResult = await createPayOSPayment({
+            orderCode: orderCode,
+            amount: totalAmount,
+            description: `DH ${orderNumber}`.substring(0, 25), // PayOS giới hạn 25 ký tự
+            items: cartItems.map(item => ({
+              name: item.product_name.substring(0, 25), // Tên sản phẩm cũng giới hạn
+              quantity: item.quantity,
+              price: item.price,
+            })),
+            cancelUrl: `${window.location.origin}/payment/payment-cancel?orderNumber=${orderNumber}`,
+            returnUrl: `${window.location.origin}/payment/payment-result?orderNumber=${orderNumber}&gateway=payos`,
+            buyerName: shippingAddress.fullname,
+            buyerPhone: shippingAddress.phone,
+          });
+
+          if (payosResult.success && payosResult.data?.checkoutUrl) {
+            // Xóa giỏ hàng trước khi redirect
+            await clearShoppingCart();
+            // Redirect đến trang thanh toán PayOS
+            window.location.href = payosResult.data.checkoutUrl;
+            return;
+          } else {
+            throw new Error('Không thể tạo thanh toán PayOS');
+          }
+        } catch (payosError: any) {
+          console.error('PayOS payment error:', payosError);
+          alert(`Lỗi thanh toán PayOS: ${payosError.message}. Đơn hàng đã được tạo, bạn có thể thanh toán sau.`);
         }
       }
 
@@ -521,6 +559,31 @@ export default function CheckoutPage() {
                     <p className="font-medium">Ví MoMo</p>
                     <p className="text-sm text-gray-500">
                       Thanh toán qua ví điện tử MoMo
+                    </p>
+                  </div>
+                </label>
+
+                {/* PayOS - QR Code / Bank Transfer */}
+                <label className="flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition hover:bg-gray-50"
+                  style={{
+                    borderColor: paymentMethod === 'payos' ? '#ec4899' : '#d1d5db',
+                    backgroundColor: paymentMethod === 'payos' ? '#fce7f3' : 'white',
+                  }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="payos"
+                    checked={paymentMethod === 'payos'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-5 h-5 text-pink-600"
+                  />
+                  <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center text-white">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium">PayOS (QR Code)</p>
+                    <p className="text-sm text-gray-500">
+                      Quét mã QR hoặc chuyển khoản ngân hàng
                     </p>
                   </div>
                 </label>

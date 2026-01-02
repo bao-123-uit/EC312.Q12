@@ -4,7 +4,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PaymentController } from './payment/payment.controller';
 import { SupabaseService } from './supabase.service';
 import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
@@ -20,6 +19,7 @@ import { GiftModule } from './gift/gift.module';
 import { DesignModule } from './design/design.module';
 import { MessengerModule } from './messenger/messenger.module';
 import { PhoneModelModule } from './phone-model/phone-model.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -42,8 +42,9 @@ import { PhoneModelModule } from './phone-model/phone-model.module';
     DesignModule,
     MessengerModule,
     PhoneModelModule,
+    PaymentModule,
   ],
-  controllers: [AppController, PaymentController],
+  controllers: [AppController],
   providers: [AppService, SupabaseService],
 })
 export class AppModule {}

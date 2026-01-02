@@ -319,6 +319,7 @@ const AdminDashboard: React.FC = () => {
       case 'đang xử lý': return 'bg-yellow-100 text-yellow-800';
       case 'processing':
       case 'đang giao': return 'bg-blue-100 text-blue-800';
+      case 'success':
       case 'completed':
       case 'delivered':
       case 'đã giao': return 'bg-green-100 text-green-800';

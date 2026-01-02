@@ -81,6 +81,7 @@ export default function OrderDetailPage() {
       processing: { label: 'Đang chuẩn bị', color: 'bg-purple-100 text-purple-700', icon: <Package className="w-5 h-5" /> },
       shipped: { label: 'Đang giao hàng', color: 'bg-indigo-100 text-indigo-700', icon: <Truck className="w-5 h-5" /> },
       delivered: { label: 'Đã giao hàng', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-5 h-5" /> },
+      success: { label: 'Thành công', color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-5 h-5" /> },
       cancelled: { label: 'Đã hủy', color: 'bg-red-100 text-red-700', icon: <XCircle className="w-5 h-5" /> },
     };
     return statuses[status] || statuses.pending;
@@ -210,7 +211,7 @@ export default function OrderDetailPage() {
                 )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Phí vận chuyển</span>
-                  <span>{order.shipping_fee === 0 ? 'Miễn phí' : formatPrice(order.shipping_fee)}</span>
+                  <span>{order.shipping_fee === 0 ? '30.000đ' : formatPrice(order.shipping_fee)}</span>
                 </div>
                 <div className="border-t pt-3 flex justify-between">
                   <span className="font-bold">Tổng cộng</span>
