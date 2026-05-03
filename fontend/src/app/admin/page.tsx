@@ -242,8 +242,9 @@ const AdminDashboard: React.FC = () => {
   }, [isMounted, isAuthenticated, activeTab]);
 
   const revenue7Days: number[] = dashboard?.revenue7Days || [];
-  const bestSellers: Array<{ id: number; name: string; sold: number; revenue: number }> =
+  const bestSellers: Array<{ id: number; name: string; sold: number; revenue: number; image_url?: string | null }> =
     dashboard?.bestSellers || [];
+  const maxRevenue = revenue7Days.length ? Math.max(...revenue7Days, 0) : 0;
 
   const stats = dashboard ? [
     {
@@ -759,13 +760,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <h3 className="text-lg font-bold mb-4">Doanh Thu 7 Ngày Qua</h3>
                   <div className="h-64 flex items-end justify-around gap-2">
-                    {revenue7Days.length === 7 ? revenue7Days.map((amount: number, i: number) => (
-                      <div key={i} className="flex-1 flex flex-col items-center">
-                        <div className="w-full bg-pink-600 rounded-t" style={{ height: `${Math.max(amount / Math.max(...revenue7Days, 1) * 100, 5)}%` }}></div>
-                        <span className="text-xs text-gray-600 mt-2">T{i + 2}</span>
-                        <span className="text-xs text-gray-500">{amount.toLocaleString('vi-VN')}₫</span>
-                      </div>
-                    )) : <div className="text-gray-400">Không có dữ liệu</div>}
+                    {revenue7Days.length === 7 ? revenue7Days.map((amount: number, i: number) => {
+                      const percent = maxRevenue > 0 ? (amount / maxRevenue) * 100 : 0;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center">
+                          <div className="w-full h-40 bg-pink-50 rounded-t flex items-end">
+                            <div
+                              className="w-full bg-pink-600 rounded-t"
+                              style={{ height: `${Math.max(percent, 5)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs text-gray-600 mt-2">T{i + 2}</span>
+                          <span className="text-xs text-gray-500">{amount.toLocaleString('vi-VN')}₫</span>
+                        </div>
+                      );
+                    }) : <div className="text-gray-400">Không có dữ liệu</div>}
                   </div>
                 </div>
 
@@ -776,7 +785,16 @@ const AdminDashboard: React.FC = () => {
                     {bestSellers.length > 0 ? bestSellers.map((product, i) => (
                       <div key={product.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-200 rounded"></div>
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-10 h-10 rounded object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 rounded"></div>
+                          )}
                           <div>
                             <p className="font-medium">{product.name}</p>
                             <p className="text-sm text-gray-600">{product.sold} đã bán</p>

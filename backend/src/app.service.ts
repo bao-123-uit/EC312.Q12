@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from './supabase.service';
+import { getSupabaseClient } from './repositories/base.repository';
 
 @Injectable()
 export class AppService {
@@ -38,24 +39,65 @@ export class AppService {
       }
     }
     // Top sản phẩm bán chạy
-    const productSales: Record<string, {name: string, sold: number, revenue: number}> = {};
-    for (const o of orders) {
-      if (Array.isArray(o.products)) {
-        for (const p of o.products) {
-          const key = String(p.id);
-          if (!productSales[key]) {
-            const prod = products.find(pr => pr.id == p.id) || {};
-            productSales[key] = { name: prod.name || '', sold: 0, revenue: 0 };
-          }
-          productSales[key].sold += p.quantity || 0;
-          productSales[key].revenue += (p.quantity || 0) * (p.price || 0);
+    const supabase = getSupabaseClient();
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from('order_items')
+      .select(`
+        product_id,
+        quantity,
+        unit_price,
+        total_price,
+        products (
+          product_id,
+          product_name,
+          image_url,
+          product_images (
+            image_url,
+            is_primary
+          )
+        )
+      `);
+
+    const productSales: Record<string, { name: string; sold: number; revenue: number; image_url: string | null }> = {};
+    if (!orderItemsError && Array.isArray(orderItems)) {
+      for (const item of orderItems) {
+        const key = String(item.product_id);
+        if (!productSales[key]) {
+          const product = Array.isArray(item.products) ? item.products[0] : item.products;
+          const primaryImage =
+            product?.product_images?.find((img: any) => img.is_primary) ||
+            product?.product_images?.[0];
+          productSales[key] = {
+            name: product?.product_name || '',
+            sold: 0,
+            revenue: 0,
+            image_url: primaryImage?.image_url || product?.image_url || null
+          };
         }
+        const qty = item.quantity || 0;
+        const itemTotal = item.total_price || (qty * (item.unit_price || 0));
+        productSales[key].sold += qty;
+        productSales[key].revenue += itemTotal;
       }
     }
+
     const bestSellers = Object.entries(productSales)
-      .sort((a,b) => b[1].sold - a[1].sold)
-      .slice(0,5)
-      .map(([id, info]) => ({ id, ...info }));
+      .sort((a, b) => b[1].sold - a[1].sold)
+      .slice(0, 5)
+      .map(([id, info]) => ({ id: Number(id), ...info }));
+
+    if (bestSellers.length === 0 && products.length > 0) {
+      const fallbackProducts = products
+        .slice(0, 5)
+        .map((product: any) => ({
+          id: product.product_id || product.id,
+          name: product.product_name || product.name || '',
+          sold: 0,
+          revenue: 0,
+          image_url: product.image_url || null
+        }));
+      bestSellers.push(...fallbackProducts);
+    }
 
     return {
       totalRevenue,
