@@ -60,13 +60,6 @@ export default function ProductCard({
             {productName}
           </h3>
         </Link>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="flex items-center">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm ml-1">{productRating}</span>
-          </div>
-          <span className="text-sm text-gray-500">({productReviews})</span>
-        </div>
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold">
             {(product.price || 0).toLocaleString('vi-VN')}₫

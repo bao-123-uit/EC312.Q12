@@ -1,52 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.banners (
-  banner_id integer NOT NULL DEFAULT nextval('banners_banner_id_seq'::regclass),
-  title character varying,
-  subtitle character varying,
-  image_url character varying NOT NULL,
-  mobile_image_url character varying,
-  link_url character varying,
-  button_text character varying,
-  position character varying,
-  display_order integer DEFAULT 0,
-  is_active boolean DEFAULT true,
-  valid_from timestamp without time zone,
-  valid_to timestamp without time zone,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT banners_pkey PRIMARY KEY (banner_id)
-);
-CREATE TABLE public.blog_posts (
-  post_id integer NOT NULL DEFAULT nextval('blog_posts_post_id_seq'::regclass),
-  title character varying NOT NULL,
-  slug character varying NOT NULL UNIQUE,
-  content text NOT NULL,
-  excerpt text,
-  featured_image character varying,
-  author_id integer,
-  category character varying,
-  tags text,
-  view_count integer DEFAULT 0,
-  is_published boolean DEFAULT false,
-  published_at timestamp without time zone,
-  meta_title character varying,
-  meta_description text,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT blog_posts_pkey PRIMARY KEY (post_id)
-);
-CREATE TABLE public.brands (
-  brand_id integer NOT NULL DEFAULT nextval('brands_brand_id_seq'::regclass),
-  brand_name character varying NOT NULL,
-  brand_slug character varying NOT NULL UNIQUE,
-  logo_url character varying,
-  description text,
-  country_origin character varying,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT brands_pkey PRIMARY KEY (brand_id)
-);
 CREATE TABLE public.bundle_deals (
   bundle_id integer NOT NULL DEFAULT nextval('bundle_deals_bundle_id_seq'::regclass),
   bundle_name character varying NOT NULL,
@@ -62,16 +16,6 @@ CREATE TABLE public.bundle_deals (
   valid_to timestamp without time zone NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT bundle_deals_pkey PRIMARY KEY (bundle_id)
-);
-CREATE TABLE public.bundle_products (
-  id integer NOT NULL DEFAULT nextval('bundle_products_id_seq'::regclass),
-  bundle_id integer,
-  product_id integer,
-  quantity integer DEFAULT 1,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT bundle_products_pkey PRIMARY KEY (id),
-  CONSTRAINT bundle_products_bundle_id_fkey FOREIGN KEY (bundle_id) REFERENCES public.bundle_deals(bundle_id),
-  CONSTRAINT bundle_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.categories (
   category_id integer NOT NULL DEFAULT nextval('categories_category_id_seq'::regclass),
@@ -139,42 +83,6 @@ CREATE TABLE public.custom_designs (
   CONSTRAINT custom_designs_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.phone_templates(template_id),
   CONSTRAINT custom_designs_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
 );
-CREATE TABLE public.customer_addresses (
-  address_id integer NOT NULL DEFAULT nextval('customer_addresses_address_id_seq'::regclass),
-  customer_id integer,
-  address_type character varying,
-  full_name character varying,
-  phone character varying,
-  address_line1 character varying NOT NULL,
-  address_line2 character varying,
-  ward character varying,
-  district character varying,
-  city character varying NOT NULL,
-  postal_code character varying,
-  country character varying DEFAULT 'Vietnam'::character varying,
-  is_default boolean DEFAULT false,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT customer_addresses_pkey PRIMARY KEY (address_id),
-  CONSTRAINT customer_addresses_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
-);
-CREATE TABLE public.customers (
-  customer_id integer NOT NULL DEFAULT nextval('customers_customer_id_seq'::regclass),
-  email character varying NOT NULL UNIQUE,
-  password_hash character varying NOT NULL,
-  first_name character varying,
-  last_name character varying,
-  phone character varying,
-  date_of_birth date,
-  gender character varying,
-  avatar_url character varying,
-  is_verified boolean DEFAULT false,
-  is_active boolean DEFAULT true,
-  loyalty_points integer DEFAULT 0,
-  total_spent numeric DEFAULT 0,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  last_login timestamp without time zone,
-  CONSTRAINT customers_pkey PRIMARY KEY (customer_id)
-);
 CREATE TABLE public.design_collections (
   collection_id integer NOT NULL DEFAULT nextval('design_collections_collection_id_seq'::regclass),
   collection_name character varying NOT NULL,
@@ -205,24 +113,6 @@ CREATE TABLE public.design_images (
   CONSTRAINT design_images_pkey PRIMARY KEY (image_id),
   CONSTRAINT design_images_design_id_fkey FOREIGN KEY (design_id) REFERENCES public.custom_designs(design_id)
 );
-CREATE TABLE public.flash_sales (
-  flash_sale_id integer NOT NULL DEFAULT nextval('flash_sales_flash_sale_id_seq'::regclass),
-  sale_name character varying NOT NULL,
-  product_id integer,
-  variant_id integer,
-  original_price numeric NOT NULL,
-  flash_price numeric NOT NULL,
-  discount_percent numeric,
-  quantity_limit integer,
-  quantity_sold integer DEFAULT 0,
-  start_time timestamp without time zone NOT NULL,
-  end_time timestamp without time zone NOT NULL,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT flash_sales_pkey PRIMARY KEY (flash_sale_id),
-  CONSTRAINT flash_sales_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT flash_sales_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
-);
 CREATE TABLE public.gift_emails (
   email_id uuid NOT NULL DEFAULT gen_random_uuid(),
   gift_id uuid,
@@ -246,12 +136,15 @@ CREATE TABLE public.gifts (
   product_id integer NOT NULL,
   quantity integer DEFAULT 1,
   verification_code character varying NOT NULL,
-  status character varying DEFAULT 'pending'::character varying,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending_payment'::character varying, 'sent'::character varying, 'verified'::character varying, 'claimed'::character varying, 'expired'::character varying, 'cancelled'::character varying]::text[])),
   created_at timestamp with time zone DEFAULT now(),
   verified_at timestamp with time zone,
   claimed_at timestamp with time zone,
   expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval),
   notes text,
+  payment_order_code character varying,
+  payment_status character varying DEFAULT 'pending'::character varying,
+  payment_date timestamp with time zone,
   CONSTRAINT gifts_pkey PRIMARY KEY (gift_id),
   CONSTRAINT gifts_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
   CONSTRAINT gifts_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
@@ -272,42 +165,22 @@ CREATE TABLE public.inventory (
   CONSTRAINT inventory_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
   CONSTRAINT inventory_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
 );
-CREATE TABLE public.inventory_transactions (
-  transaction_id integer NOT NULL DEFAULT nextval('inventory_transactions_transaction_id_seq'::regclass),
-  product_id integer,
-  variant_id integer,
-  transaction_type character varying NOT NULL,
-  quantity integer NOT NULL,
-  reference_type character varying,
-  reference_id integer,
-  note text,
-  created_by character varying,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT inventory_transactions_pkey PRIMARY KEY (transaction_id),
-  CONSTRAINT inventory_transactions_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT inventory_transactions_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id)
-);
-CREATE TABLE public.notifications (
-  notification_id integer NOT NULL DEFAULT nextval('notifications_notification_id_seq'::regclass),
-  customer_id integer,
-  type character varying NOT NULL,
-  title character varying NOT NULL,
-  message text NOT NULL,
-  link_url character varying,
-  is_read boolean DEFAULT false,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT notifications_pkey PRIMARY KEY (notification_id),
-  CONSTRAINT notifications_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
-);
-CREATE TABLE public.order_history (
-  history_id integer NOT NULL DEFAULT nextval('order_history_history_id_seq'::regclass),
-  order_id integer,
-  status character varying NOT NULL,
-  note text,
-  created_by character varying,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT order_history_pkey PRIMARY KEY (history_id),
-  CONSTRAINT order_history_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
+CREATE TABLE public.messenger_orders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  facebook_user_id character varying NOT NULL,
+  customer_name character varying NOT NULL,
+  phone character varying NOT NULL,
+  address text NOT NULL,
+  product_name character varying NOT NULL,
+  product_price numeric NOT NULL DEFAULT 0,
+  quantity integer NOT NULL DEFAULT 1,
+  color character varying,
+  total_price numeric NOT NULL DEFAULT 0,
+  notes text,
+  status character varying NOT NULL DEFAULT 'pending'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT messenger_orders_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.order_items (
   order_item_id integer NOT NULL DEFAULT nextval('order_items_order_item_id_seq'::regclass),
@@ -322,6 +195,8 @@ CREATE TABLE public.order_items (
   discount_amount numeric DEFAULT 0,
   total_price numeric NOT NULL,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  phone_model_id integer,
+  phone_model_name character varying,
   CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id),
   CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
   CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
@@ -357,24 +232,7 @@ CREATE TABLE public.orders (
   shipping_city character varying,
   customer_id uuid,
   CONSTRAINT orders_pkey PRIMARY KEY (order_id),
-  CONSTRAINT orders_shipping_address_id_fkey FOREIGN KEY (shipping_address_id) REFERENCES public.customer_addresses(address_id),
-  CONSTRAINT orders_billing_address_id_fkey FOREIGN KEY (billing_address_id) REFERENCES public.customer_addresses(address_id),
   CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.payment_transactions (
-  transaction_id integer NOT NULL DEFAULT nextval('payment_transactions_transaction_id_seq'::regclass),
-  order_id integer,
-  payment_gateway character varying NOT NULL,
-  transaction_ref character varying UNIQUE,
-  amount numeric NOT NULL,
-  currency character varying DEFAULT 'VND'::character varying,
-  status character varying NOT NULL,
-  payment_date timestamp without time zone,
-  response_data text,
-  ip_address character varying,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT payment_transactions_pkey PRIMARY KEY (transaction_id),
-  CONSTRAINT payment_transactions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
 );
 CREATE TABLE public.phone_models (
   model_id integer NOT NULL DEFAULT nextval('phone_models_model_id_seq'::regclass),
@@ -404,14 +262,6 @@ CREATE TABLE public.phone_templates (
   is_active boolean DEFAULT true,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT phone_templates_pkey PRIMARY KEY (template_id)
-);
-CREATE TABLE public.product_attributes (
-  attribute_id integer NOT NULL DEFAULT nextval('product_attributes_attribute_id_seq'::regclass),
-  product_id integer,
-  attribute_name character varying NOT NULL,
-  attribute_value text NOT NULL,
-  CONSTRAINT product_attributes_pkey PRIMARY KEY (attribute_id),
-  CONSTRAINT product_attributes_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.product_collections (
   id integer NOT NULL DEFAULT nextval('product_collections_id_seq'::regclass),
@@ -462,7 +312,6 @@ CREATE TABLE public.product_reviews (
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT product_reviews_pkey PRIMARY KEY (review_id),
   CONSTRAINT product_reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
-  CONSTRAINT product_reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT product_reviews_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id)
 );
 CREATE TABLE public.product_variants (
@@ -510,31 +359,7 @@ CREATE TABLE public.products (
   image_url text,
   season text,
   CONSTRAINT products_pkey PRIMARY KEY (product_id),
-  CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id),
-  CONSTRAINT products_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES public.brands(brand_id)
-);
-CREATE TABLE public.recently_viewed (
-  id integer NOT NULL DEFAULT nextval('recently_viewed_id_seq'::regclass),
-  customer_id integer,
-  product_id integer,
-  viewed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT recently_viewed_pkey PRIMARY KEY (id),
-  CONSTRAINT recently_viewed_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
-  CONSTRAINT recently_viewed_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id)
-);
-CREATE TABLE public.refunds (
-  refund_id integer NOT NULL DEFAULT nextval('refunds_refund_id_seq'::regclass),
-  order_id integer,
-  refund_amount numeric NOT NULL,
-  refund_reason text NOT NULL,
-  refund_status character varying DEFAULT 'pending'::character varying,
-  refund_method character varying,
-  processed_by integer,
-  approved_at timestamp without time zone,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT refunds_pkey PRIMARY KEY (refund_id),
-  CONSTRAINT refunds_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id),
-  CONSTRAINT refunds_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.staff(staff_id)
+  CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id)
 );
 CREATE TABLE public.review_images (
   review_image_id integer NOT NULL DEFAULT nextval('review_images_review_image_id_seq'::regclass),
@@ -543,17 +368,6 @@ CREATE TABLE public.review_images (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT review_images_pkey PRIMARY KEY (review_image_id),
   CONSTRAINT review_images_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.product_reviews(review_id)
-);
-CREATE TABLE public.search_logs (
-  search_id integer NOT NULL DEFAULT nextval('search_logs_search_id_seq'::regclass),
-  customer_id integer,
-  search_query character varying NOT NULL,
-  results_count integer DEFAULT 0,
-  clicked_product_id integer,
-  search_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT search_logs_pkey PRIMARY KEY (search_id),
-  CONSTRAINT search_logs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
-  CONSTRAINT search_logs_clicked_product_id_fkey FOREIGN KEY (clicked_product_id) REFERENCES public.products(product_id)
 );
 CREATE TABLE public.shipping_rates (
   rate_id integer NOT NULL DEFAULT nextval('shipping_rates_rate_id_seq'::regclass),
@@ -565,18 +379,7 @@ CREATE TABLE public.shipping_rates (
   estimated_days character varying,
   is_active boolean DEFAULT true,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT shipping_rates_pkey PRIMARY KEY (rate_id),
-  CONSTRAINT shipping_rates_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.shipping_zones(zone_id)
-);
-CREATE TABLE public.shipping_zones (
-  zone_id integer NOT NULL DEFAULT nextval('shipping_zones_zone_id_seq'::regclass),
-  zone_name character varying NOT NULL,
-  countries text,
-  cities text,
-  description text,
-  is_active boolean DEFAULT true,
-  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT shipping_zones_pkey PRIMARY KEY (zone_id)
+  CONSTRAINT shipping_rates_pkey PRIMARY KEY (rate_id)
 );
 CREATE TABLE public.shopping_carts (
   cart_id integer NOT NULL DEFAULT nextval('shopping_carts_cart_id_seq'::regclass),
@@ -586,6 +389,8 @@ CREATE TABLE public.shopping_carts (
   quantity integer NOT NULL DEFAULT 1,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  phone_model_id integer,
+  phone_model_name character varying,
   CONSTRAINT shopping_carts_pkey PRIMARY KEY (cart_id),
   CONSTRAINT shopping_carts_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
   CONSTRAINT shopping_carts_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id),
@@ -603,15 +408,6 @@ CREATE TABLE public.staff (
   last_login timestamp without time zone,
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT staff_pkey PRIMARY KEY (staff_id)
-);
-CREATE TABLE public.system_settings (
-  setting_id integer NOT NULL DEFAULT nextval('system_settings_setting_id_seq'::regclass),
-  setting_key character varying NOT NULL UNIQUE,
-  setting_value text,
-  setting_type character varying,
-  description text,
-  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT system_settings_pkey PRIMARY KEY (setting_id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -638,7 +434,6 @@ CREATE TABLE public.wishlists (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   user_id uuid,
   CONSTRAINT wishlists_pkey PRIMARY KEY (wishlist_id),
-  CONSTRAINT wishlists_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT wishlists_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(product_id),
   CONSTRAINT wishlists_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(variant_id),
   CONSTRAINT wishlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)

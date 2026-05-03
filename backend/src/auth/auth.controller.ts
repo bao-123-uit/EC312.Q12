@@ -7,38 +7,50 @@ import {
   Put,
   Body,
   Headers,
+  Res,
   UseGuards,
   UnauthorizedException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard, CustomerGuard, RolesGuard } from './guards';
+import { CsrfLabService } from '../csrf-lab/csrf-lab.service';
+import { JwtAuthGuard, CookieAuthGuard, CustomerGuard, RolesGuard } from './guards';
 import { Roles, CurrentUser, CustomerOnly } from './decorators';
 import { UserRole } from '../common';
 import type { AuthenticatedUser } from '../common';
 
 // DTOs
 class RegisterDto {
-  email: string;
-  password: string;
-  full_name: string;
+  email!: string;
+  password!: string;
+  full_name!: string;
   phone?: string;
 }
 
 class LoginDto {
-  email: string;
-  password: string;
+  email!: string;
+  password!: string;
 }
 
 class ChangePasswordDto {
-  oldPassword: string;
-  newPassword: string;
+  oldPassword!: string;
+  newPassword!: string;
+}
+
+class ChangeEmailDto {
+  newEmail!: string;
 }
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  private readonly csrfLabCookieName = 'csrf_lab_session';
+
+  constructor(
+    private readonly authService: AuthService,
+    private readonly csrfLabService: CsrfLabService,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PUBLIC ENDPOINTS (không cần authentication)
@@ -56,10 +68,42 @@ export class AuthController {
   /**
    * POST /auth/login - Đăng nhập
    */
+  // Old implementation (before cookie-based auth for CSRF lab):
+  // @Post('login')
+  // @HttpCode(HttpStatus.OK)
+  // async login(@Body() body: LoginDto) {
+  //   return await this.authService.login(body.email, body.password);
+  // }
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() body: LoginDto) {
-    return await this.authService.login(body.email, body.password);
+  // Old signature:
+  // async login(@Body() body: LoginDto) {
+  //   return await this.authService.login(body.email, body.password);
+  // }
+  async login(
+    @Body() body: LoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.login(body.email, body.password);
+
+    // Create CSRF lab session on login so browser has csrf_lab_session cookie.
+    const labSession = await this.csrfLabService.loginAsVictim(result.user?.email);
+    response.cookie(this.csrfLabCookieName, labSession.sessionId, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/',
+    });
+
+    response.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -126,6 +170,51 @@ export class AuthController {
       body.oldPassword,
       body.newPassword,
     );
+  }
+
+  /**
+   * PUT /auth/change-email - Đổi email (Gmail)
+    * Yêu cầu: Đã đăng nhập
+   */
+  // Old implementation (JWT header-based, no cookie refresh):
+  // @Put('change-email')
+  // @UseGuards(JwtAuthGuard)
+  // @HttpCode(HttpStatus.OK)
+  // async changeEmail(
+  //   @CurrentUser('id') userId: string,
+  //   @Body() body: ChangeEmailDto,
+  // ) {
+  //   return await this.authService.changeEmail(userId, body.newEmail);
+  // }
+  @Put('change-email')
+  // Old guard: @UseGuards(JwtAuthGuard)
+  @UseGuards(CookieAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  // Old signature:
+  // async changeEmail(
+  //   @CurrentUser('id') userId: string,
+  //   @Body() body: ChangeEmailDto,
+  // ) {
+  //   return await this.authService.changeEmail(userId, body.newEmail);
+  // }
+  async changeEmail(
+    @CurrentUser('id') userId: string,
+    @Body() body: ChangeEmailDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.changeEmail(userId, body.newEmail);
+
+    if (result?.access_token) {
+      response.cookie('access_token', result.access_token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

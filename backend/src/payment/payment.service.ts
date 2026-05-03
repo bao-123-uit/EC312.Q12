@@ -175,7 +175,7 @@ export class PaymentService {
       throw new BadRequestException('Invalid MoMo signature');
     }
 
-    // 1️⃣ Ghi payment_transactions
+    //  Ghi payment_transactions
     await this.supabaseService.createPaymentTransaction({
       order_id: null, // map bằng order_number phía dưới
       payment_gateway: 'momo',

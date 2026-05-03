@@ -70,7 +70,7 @@ export class GiftController {
     return this.giftService.verifyGiftPayment(dto.giftId, dto.orderCode);
   }
 
-  // POST /gift/send - Gửi quà tặng (cũ - không cần thanh toán)
+  // POST /gift/send - Gửi quà tặng 
   @Post('send')
   @HttpCode(HttpStatus.CREATED)
   async sendGift(@Body() dto: SendGiftDto) {

@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginCustomer } from '@/lib/api-client';
+import { changeEmail, loginCustomer } from '@/lib/api-client';
 import Link from 'next/link';
 import { Mail, Lock, AlertCircle, User, LogOut, Settings, ShoppingBag, Heart, Edit, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+
+const BACKEND_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +20,13 @@ export default function LoginPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showEmailEditor, setShowEmailEditor] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState('');
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [labVictimEmail, setLabVictimEmail] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -63,7 +73,7 @@ export default function LoginPage() {
         
         localStorage.setItem('userRole', isAdmin ? 'admin' : 'customer');
         
-        // 🔧 SỬA: Dùng login() từ useAuth() thay vì setLoggedInUser
+        //  SỬA: Dùng login() từ useAuth() thay vì setLoggedInUser
         login(customerData);
         
         if (isAdmin) {
@@ -85,6 +95,110 @@ export default function LoginPage() {
   const handleLogout = () => {
     logout();
     localStorage.removeItem('userRole');
+  };
+
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newEmail) {
+      setEmailError('Vui lòng nhập email mới');
+      return;
+    }
+
+    setEmailError('');
+    setEmailSuccess('');
+    setEmailLoading(true);
+
+    try {
+      const result = await changeEmail(newEmail);
+
+      if (!result?.success) {
+        setEmailError(result?.message || 'Đổi email thất bại');
+        return;
+      }
+
+      const oldCustomerRaw = localStorage.getItem('customer');
+      const oldCustomer = oldCustomerRaw ? JSON.parse(oldCustomerRaw) : {};
+      const updatedCustomer = {
+        ...oldCustomer,
+        ...(result.user || {}),
+        access_token: result.access_token || oldCustomer.access_token,
+      };
+
+      localStorage.setItem('customer', JSON.stringify(updatedCustomer));
+      login(updatedCustomer);
+
+      setEmailSuccess(result.message || 'Đổi email thành công');
+      setNewEmail(updatedCustomer.email || '');
+      setShowEmailEditor(false);
+    } catch {
+      setEmailError('Đổi email thất bại');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleInsecureEmailDemo = async () => {
+    if (!newEmail) {
+      setEmailError('Vui lòng nhập email mới để chạy demo');
+      return;
+    }
+
+    setEmailError('');
+    setEmailSuccess('');
+    setDemoLoading(true);
+
+    try {
+      const loginResponse = await fetch(`${BACKEND_BASE_URL}/csrf-lab/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          victimEmail: user?.email || undefined,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Không tạo được session cho CSRF lab');
+      }
+
+      const insecureResponse = await fetch(
+        `${BACKEND_BASE_URL}/csrf-lab/insecure/change-email`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ newEmail }),
+        },
+      );
+
+      const insecureData = await insecureResponse.json();
+
+      if (!insecureResponse.ok || !insecureData?.success) {
+        throw new Error(insecureData?.message || 'Gọi insecure API thất bại');
+      }
+
+      const meResponse = await fetch(`${BACKEND_BASE_URL}/csrf-lab/me`, {
+        credentials: 'include',
+      });
+      const meData = await meResponse.json();
+
+      if (meResponse.ok && meData?.user?.email) {
+        setLabVictimEmail(meData.user.email);
+      }
+
+      setEmailSuccess(
+        'Demo thành công: endpoint insecure đã đổi email chỉ với cookie, không cần CSRF token.',
+      );
+    } catch (error: any) {
+      setEmailError(error?.message || 'Demo insecure thất bại');
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   const getUserRole = () => {
@@ -135,8 +249,75 @@ export default function LoginPage() {
                     <Mail className="w-5 h-5 text-gray-400" />
                     <span className="text-gray-600">Email</span>
                   </div>
-                  <span className="text-gray-900 font-medium">{user.email}</span>
+                  <div className="text-right">
+                    <span className="text-gray-900 font-medium">{user.email}</span>
+                    <button
+                      type="button"
+                      className="ml-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      onClick={() => {
+                        setShowEmailEditor((prev) => !prev);
+                        setNewEmail(user.email || '');
+                        setEmailError('');
+                        setEmailSuccess('');
+                      }}
+                    >
+                      Đổi gmail
+                    </button>
+                  </div>
                 </div>
+
+                {showEmailEditor && (
+                  <form onSubmit={handleChangeEmail} className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                    <label htmlFor="newEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                      Gmail mới
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="newEmail"
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="example@gmail.com"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={emailLoading}
+                        className={`px-4 py-2 rounded-lg text-white font-medium ${
+                          emailLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        {emailLoading ? 'Đang lưu' : 'Lưu'}
+                      </button>
+                    </div>
+                    {/* <div className="mt-3">
+                      <button
+                        type="button"
+                        disabled={demoLoading}
+                        onClick={handleInsecureEmailDemo}
+                        className={`w-full px-4 py-2 rounded-lg text-white font-medium ${
+                          demoLoading
+                            ? 'bg-rose-300 cursor-not-allowed'
+                            : 'bg-rose-500 hover:bg-rose-600'
+                        }`}
+                      >
+                        {demoLoading
+                          ? 'Đang chạy demo insecure...'
+                          : 'Demo lỗi CSRF (insecure/change-email)'}
+                      </button>
+                    </div>
+
+                    {labVictimEmail && (
+                      <p className="mt-2 text-sm text-slate-700">
+                        Email nạn nhân trong CSRF lab hiện tại: <strong>{labVictimEmail}</strong>
+                      </p>
+                    )} */}
+                    {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
+                  </form>
+                )}
+
+                {emailSuccess && <p className="text-sm text-green-600">{emailSuccess}</p>}
 
                 <div className="flex items-center justify-between py-3 border-b border-gray-100">
                   <div className="flex items-center gap-3">

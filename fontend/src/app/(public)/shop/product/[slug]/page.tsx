@@ -252,23 +252,6 @@ export default function ProductDetailPage() {
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
                   {product.product_name}
                 </h1>
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`w-5 h-5 ${
-                          star <= (product.avg_rating || 4.5)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-2 text-sm text-gray-600">
-                      {product.avg_rating || 4.5} ({product.review_count || reviews.length} đánh giá)
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Price */}

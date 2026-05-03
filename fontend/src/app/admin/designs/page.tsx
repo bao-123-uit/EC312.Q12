@@ -192,8 +192,11 @@ export default function AdminDesignsPage() {
                       alt="Design preview"
                       className="w-full h-full object-contain"
                       onError={(e) => {
-                        console.error('Image load error:', design.preview_image_url);
-                        (e.target as HTMLImageElement).style.display = 'none';
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.fallback) {
+                          target.dataset.fallback = 'true';
+                          target.src = '/about1.jpg';
+                        }
                       }}
                     />
                   ) : (
@@ -290,6 +293,13 @@ export default function AdminDesignsPage() {
                       src={`http://localhost:3001${selectedDesign.preview_image_url}`}
                       alt="Design preview"
                       className="w-full h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.fallback) {
+                          target.dataset.fallback = 'true';
+                          target.src = '/about1.jpg';
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">

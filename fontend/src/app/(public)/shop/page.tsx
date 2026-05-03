@@ -324,17 +324,6 @@ export default function ShopPage() {
                       </h3>
                     </Link>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-                        />
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">({product.reviews})</span>
-                    </div>
-
                     {/* Price */}
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-lg font-bold text-pink-600">

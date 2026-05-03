@@ -51,10 +51,15 @@ export class MessengerService {
   private readonly FB_API_URL = 'https://graph.facebook.com/v18.0/me/messages';
 
   constructor(private configService: ConfigService) {
+    const supabaseKey =
+      this.configService.get<string>('SUPABASE_SECRET_KEY') ||
+      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      '';
+
     // Khởi tạo Supabase client
     this.supabase = createClient(
       this.configService.get('SUPABASE_URL') || '',
-      this.configService.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+      supabaseKey,
     );
     this.logger.log('MessengerService đã được khởi tạo');
     
@@ -95,13 +100,6 @@ export class MessengerService {
           categories (
             category_id,
             category_name
-          ),
-          product_variants (
-            color,
-            is_active
-          ),
-          inventory (
-            quantity_available
           )
         `)
         .eq('status', 'active')
@@ -113,20 +111,15 @@ export class MessengerService {
       }
 
       // Chuyển đổi sang format Product
-      this.productsCache = (data || [])
-        .filter((p: any) => {
-          // Lọc sản phẩm còn hàng
-          const totalStock = (p.inventory || []).reduce((sum: number, inv: any) => sum + (inv.quantity_available || 0), 0);
-          return totalStock > 0 || p.inventory?.length === 0; // Nếu không có inventory thì vẫn hiện
-        })
-        .map((p: any): Product => {
-          // Lấy danh sách màu từ variants
-          const colors: string[] = (p.product_variants || [])
-            .filter((v: any) => v.is_active && v.color)
-            .map((v: any) => v.color as string);
-          
-          // Tính tổng stock
-          const totalStock = (p.inventory || []).reduce((sum: number, inv: any) => sum + (inv.quantity_available || 0), 0);
+      const inventoryMap: Record<number, number> = {};
+
+      const productIds = (data || []).map((p: any) => p.product_id);
+
+      const variantsMap: Record<number, string[]> = {};
+
+      const allActiveProducts: Product[] = (data || []).map((p: any): Product => {
+          const colors = variantsMap[p.product_id] || [];
+          const totalStock = inventoryMap[p.product_id] || 0;
 
           return {
             id: p.product_id.toString(),
@@ -134,13 +127,16 @@ export class MessengerService {
             price: p.sale_price || p.price,
             emoji: this.getProductEmoji(p.categories?.category_name || ''),
             description: p.description || 'Sản phẩm chất lượng cao',
-            colors: colors.length > 0 ? [...new Set(colors)] as string[] : ['Mặc định'], // Unique colors
+            colors: colors.length > 0 ? [...new Set(colors)] as string[] : ['Mặc định'],
             image_url: p.image_url,
             stock_quantity: totalStock,
             category_id: p.category_id || p.categories?.category_id,
             category_name: p.categories?.category_name || 'Khác',
           };
         });
+
+      // Ưu tiên hiển thị sản phẩm còn hàng.
+      this.productsCache = allActiveProducts;
 
       this.productsCacheTime = new Date();
       this.logger.log(`Đã tải ${this.productsCache.length} sản phẩm từ database`);

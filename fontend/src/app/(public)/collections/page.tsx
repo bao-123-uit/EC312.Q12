@@ -297,10 +297,7 @@ const CollectionsPage: React.FC = () => {
                         </div>
                         <div className="p-3">
                           <h3 className="font-medium text-sm line-clamp-2 mb-2 group-hover:text-pink-600 transition">{product.name}</h3>
-                          <div className="flex items-center gap-1 mb-2">
-                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs text-gray-600">{product.rating}</span>
-                          </div>
+
                           <p className="text-pink-600 font-bold">{product.price.toLocaleString('vi-VN')}₫</p>
                         </div>
                       </div>
@@ -511,14 +508,7 @@ const CollectionsPage: React.FC = () => {
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">{product.name}</h3>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm ml-1">{product.rating}</span>
-                    </div>
-                    <span className="text-sm text-gray-500">({product.reviews})</span>
-                  </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-4">
                     <span className="text-lg font-bold text-pink-600">{product.price.toLocaleString('vi-VN')}₫</span>
                     <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-purple-700 hover:to-pink-700 transition">
                       Thêm

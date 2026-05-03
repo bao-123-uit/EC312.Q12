@@ -9,6 +9,7 @@ import {
   createOrder,
   clearShoppingCart,
   createMomoPayment,
+  validateCoupon,
 } from '@/lib/api-client';
 import { createPayOSPayment } from '@/lib/api/payment.api';
 import {
@@ -61,6 +62,8 @@ export default function CheckoutPage() {
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [couponCode, setCouponCode] = useState('');
+  const [couponMessage, setCouponMessage] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [customerNote, setCustomerNote] = useState('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
@@ -306,6 +309,42 @@ export default function CheckoutPage() {
       alert(err.message || 'Lỗi tạo đơn hàng');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    const trimmedCode = couponCode.trim();
+    if (!trimmedCode) {
+      setCouponMessage('Vui lòng nhập mã giảm giá');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponMessage('');
+
+    try {
+      const result = await validateCoupon({
+        code: trimmedCode,
+        subtotal,
+        shipping_fee: shippingFee,
+      });
+
+      if (!result.success) {
+        setDiscount(0);
+        setCouponMessage(result.message || 'Mã giảm giá không hợp lệ');
+        return;
+      }
+
+      setDiscount(result.data?.discount_amount || 0);
+      if (Number.isFinite(result.data?.shipping_fee)) {
+        setShippingFee(result.data.shipping_fee);
+      }
+      setCouponMessage('Áp dụng mã giảm giá thành công');
+    } catch (error: any) {
+      setDiscount(0);
+      setCouponMessage(error?.message || 'Không thể áp dụng mã giảm giá');
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -665,6 +704,34 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mb-6 space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Mã giảm giá
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Nhập mã giảm giá"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={isApplyingCoupon}
+                    className="px-4 py-2 rounded-xl bg-pink-600 text-white font-semibold hover:bg-pink-700 transition disabled:opacity-60"
+                  >
+                    {isApplyingCoupon ? 'Đang áp dụng' : 'Áp dụng'}
+                  </button>
+                </div>
+                {couponMessage && (
+                  <p className={`text-sm ${couponMessage.includes('thành công') ? 'text-green-600' : 'text-red-500'}`}>
+                    {couponMessage}
+                  </p>
+                )}
               </div>
 
               {/* Summary */}

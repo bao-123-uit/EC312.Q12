@@ -30,7 +30,6 @@ export class ShoppingCartService {
       return {
         cart_id: item.cart_id,
         product_id: item.product_id,
-        variant_id: item.variant_id,
         phone_model_id: item.phone_model_id,
         phone_model_name: item.phone_model_name,
         quantity: item.quantity,
@@ -59,7 +58,6 @@ export class ShoppingCartService {
     userId: string, 
     productId: number, 
     quantity: number = 1, 
-    variantId?: number,
     phoneModelId?: number,
     phoneModelName?: string
   ) {
@@ -104,7 +102,6 @@ export class ShoppingCartService {
     const { data: created, error: createError } = await this.supabaseService.createShoppingCartItem({
       customer_id: userId,
       product_id: productId,
-      variant_id: variantId || null,
       phone_model_id: phoneModelId || null,
       phone_model_name: phoneModelName || null,
       quantity,

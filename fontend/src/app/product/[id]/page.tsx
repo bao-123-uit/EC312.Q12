@@ -49,9 +49,15 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (productId) {
       loadProduct();
-      loadPhoneModels();
     }
   }, [productId]);
+
+  // Chỉ load phone models nếu product là ốp lưng
+  useEffect(() => {
+    if (product && isPhoneCaseProduct()) {
+      loadPhoneModels();
+    }
+  }, [product]);
 
   const loadProduct = async () => {
     try {
@@ -68,8 +74,12 @@ export default function ProductDetailPage() {
   const loadPhoneModels = async () => {
     try {
       setLoadingModels(true);
+      const parsedProductId = parseInt(productId, 10);
+      if (!Number.isFinite(parsedProductId)) {
+        return;
+      }
       // Lấy dòng máy tương thích với sản phẩm
-      const compatibleRes = await fetchCompatiblePhoneModels(parseInt(productId));
+      const compatibleRes = await fetchCompatiblePhoneModels(parsedProductId);
       if (compatibleRes.success && compatibleRes.data.length > 0) {
         setCompatibleModels(compatibleRes.data);
       }
@@ -130,12 +140,32 @@ export default function ProductDetailPage() {
     return [];
   };
 
+  // Check xem sản phẩm có phải ốp lưng/ốp điện thoại không
+  const isPhoneCaseProduct = () => {
+    if (!product) return false;
+    
+    // Check product name
+    const productName = product.product_name?.toLowerCase() || '';
+    if (productName.includes('ốp') || productName.includes('case')) {
+      return true;
+    }
+    
+    // Check category name
+    const categoryName = product.categories?.category_name?.toLowerCase() || '';
+    if (categoryName.includes('ốp') || categoryName.includes('case')) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const handleAddToCart = async (): Promise<boolean> => {
     if (!product) return false;
     
-    // Chỉ yêu cầu chọn dòng máy nếu có dòng máy trong database
+    // Chỉ yêu cầu chọn dòng máy nếu là ốp lưng và có dòng máy trong database
+    const isPhoneCase = isPhoneCaseProduct();
     const hasPhoneModels = compatibleModels.length > 0 || allPhoneModels.length > 0;
-    if (hasPhoneModels && !selectedPhoneModel) {
+    if (isPhoneCase && hasPhoneModels && !selectedPhoneModel) {
       alert('Vui lòng chọn dòng máy điện thoại!');
       setShowPhoneModelDropdown(true);
       return false;
@@ -333,19 +363,7 @@ export default function ProductDetailPage() {
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mt-1">
                   {product.product_name}
                 </h1>
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`w-5 h-5 ${
-                          star <= 4 ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                    <span className="ml-2 text-sm text-gray-600">4.5 (128 đánh giá)</span>
-                  </div>
-                </div>
+
               </div>
 
               {/* Price */}
@@ -365,7 +383,8 @@ export default function ProductDetailPage() {
               {/* Description */}
               <p className="text-gray-600 mb-6">{product.description}</p>
 
-              {/* Phone Model Selection */}
+              {/* Phone Model Selection - Chỉ hiển thị cho ốp lưng */}
+              {isPhoneCaseProduct() && (
               <div className="mb-6">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Smartphone className="w-5 h-5 text-pink-600" />
@@ -493,6 +512,7 @@ export default function ProductDetailPage() {
                   </p>
                 )}
               </div>
+              )}
 
               {/* Quantity */}
               <div className="mb-6">

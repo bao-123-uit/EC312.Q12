@@ -10,14 +10,17 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { ShoppingCartService } from './shopping-cart.service';
-import { CurrentUser, CustomerOnly } from '../auth/decorators';
+import { CurrentUser, Roles } from '../auth/decorators';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../common';
 
 // DTOs
 class AddToCartDto {
   productId: number;
   quantity?: number;
-  variantId?: number;
   phoneModelId?: number;
   phoneModelName?: string;
 }
@@ -35,7 +38,8 @@ export class ShoppingCartController {
    * Yêu cầu: Đăng nhập với role CUSTOMER
    */
   @Get()
-  @CustomerOnly()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CUSTOMER, UserRole.ADMIN)
   async getCart(@CurrentUser('id') userId: string) {
     return this.cartService.getCartByUserId(userId);
   }
@@ -45,7 +49,8 @@ export class ShoppingCartController {
    * Body: { productId: number, quantity?: number, variantId?: number }
    */
   @Post()
-  @CustomerOnly()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CUSTOMER, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async addToCart(
     @CurrentUser('id') userId: string,
@@ -55,7 +60,6 @@ export class ShoppingCartController {
       userId,
       body.productId,
       body.quantity || 1,
-      body.variantId,
       body.phoneModelId,
       body.phoneModelName,
     );
@@ -67,7 +71,8 @@ export class ShoppingCartController {
    * Body: { quantity: number }
    */
   @Put(':id')
-  @CustomerOnly()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CUSTOMER, UserRole.ADMIN)
   async updateQuantity(
     @CurrentUser('id') userId: string,
     @Param('id', ParseIntPipe) cartId: number,
@@ -80,7 +85,8 @@ export class ShoppingCartController {
    * DELETE /shopping-cart/:id - Xóa item khỏi giỏ
    */
   @Delete(':id')
-  @CustomerOnly()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CUSTOMER, UserRole.ADMIN)
   async removeFromCart(
     @CurrentUser('id') userId: string,
     @Param('id', ParseIntPipe) cartId: number,
@@ -92,7 +98,8 @@ export class ShoppingCartController {
    * DELETE /shopping-cart - Xóa toàn bộ giỏ hàng
    */
   @Delete()
-  @CustomerOnly()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CUSTOMER, UserRole.ADMIN)
   async clearCart(@CurrentUser('id') userId: string) {
     return this.cartService.clearCart(userId);
   }

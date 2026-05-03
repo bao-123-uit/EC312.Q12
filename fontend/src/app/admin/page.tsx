@@ -28,7 +28,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts, fetchOrders, fetchAllOrdersAdmin, fetchUsers, fetchCategories, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllReviews, approveReview, deleteReview, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard } from '@/lib/api-client';
+import { fetchProducts, fetchOrders, fetchAllOrdersAdmin, fetchUsers, syncCategoryListFromDatabase, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllReviews, approveReview, deleteReview, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard } from '@/lib/api-client';
 
 interface Collection {
   collection_id: number;
@@ -214,9 +214,9 @@ const AdminDashboard: React.FC = () => {
         const data = await fetchUsers();
         setCustomers(Array.isArray(data) ? data : []);
       }
-      if (activeTab === 'categories' || activeTab === 'dashboard') {
-        const data = await fetchCategories();
-        setCategories(Array.isArray(data) ? data : []);
+      if (activeTab === 'products' || activeTab === 'categories' || activeTab === 'dashboard') {
+        const syncResult = await syncCategoryListFromDatabase();
+        setCategories(Array.isArray(syncResult?.data) ? syncResult.data : []);
       }
       if (activeTab === 'reviews' || activeTab === 'dashboard') {
         const data = await fetchAllReviews();

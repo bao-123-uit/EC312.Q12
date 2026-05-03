@@ -3,16 +3,43 @@ import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class CollectionService {
+  private readonly collectionTable = 'design_collections';
   private supabase = createClient(
     process.env.SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   );
 
+  private mapCollectionInput(collectionData: Record<string, any>) {
+    const mapped: Record<string, any> = {
+      collection_name: collectionData.collection_name,
+      collection_slug: collectionData.collection_slug,
+      description: collectionData.collection_description ?? collectionData.description,
+      banner_image: collectionData.collection_image ?? collectionData.banner_image,
+      thumbnail_image: collectionData.thumbnail_image,
+      theme_color: collectionData.collection_gradient ?? collectionData.theme_color,
+      display_order: collectionData.display_order,
+      is_active: collectionData.is_active,
+      is_featured: collectionData.is_featured,
+    };
+
+    if (collectionData.collection_type && mapped.is_featured === undefined) {
+      mapped.is_featured = ['featured', 'main'].includes(String(collectionData.collection_type).toLowerCase());
+    }
+
+    Object.keys(mapped).forEach((key) => {
+      if (mapped[key] === undefined) {
+        delete mapped[key];
+      }
+    });
+
+    return mapped;
+  }
+
   // Lấy tất cả bộ sưu tập
   async getAllCollections() {
     try {
       const { data, error } = await this.supabase
-        .from('collections')
+        .from(this.collectionTable)
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
@@ -31,12 +58,18 @@ export class CollectionService {
   // Lấy bộ sưu tập theo loại (main, seasonal)
   async getCollectionsByType(type: string) {
     try {
-      const { data, error } = await this.supabase
-        .from('collections')
-        .select('*')
-        .eq('collection_type', type)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      const baseQuery = () =>
+        this.supabase
+          .from(this.collectionTable)
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+
+      let { data, error } = await baseQuery().eq('collection_type', type);
+
+      if (error && error.message?.includes('collection_type')) {
+        ({ data, error } = await baseQuery());
+      }
 
       if (error) {
         console.error('getCollectionsByType error:', error.message);
@@ -52,7 +85,7 @@ export class CollectionService {
   // Lấy bộ sưu tập theo slug
   async getCollectionBySlug(slug: string) {
     const { data, error } = await this.supabase
-      .from('collections')
+      .from(this.collectionTable)
       .select('*')
       .eq('collection_slug', slug)
       .single();
@@ -68,7 +101,7 @@ export class CollectionService {
     try {
       // Lấy tất cả collections
       const { data: collections, error: collectionsError } = await this.supabase
-        .from('collections')
+        .from(this.collectionTable)
         .select('collection_id, collection_slug')
         .eq('is_active', true);
 
@@ -102,7 +135,7 @@ export class CollectionService {
   async getProductsByCollection(slug: string) {
     // Lấy collection_id từ slug
     const { data: collection, error: collectionError } = await this.supabase
-      .from('collections')
+      .from(this.collectionTable)
       .select('collection_id')
       .eq('collection_slug', slug)
       .single();
@@ -244,8 +277,8 @@ export class CollectionService {
     display_order?: number;
   }) {
     const { data, error } = await this.supabase
-      .from('collections')
-      .insert(collectionData)
+      .from(this.collectionTable)
+      .insert(this.mapCollectionInput(collectionData))
       .select()
       .single();
 
@@ -267,8 +300,8 @@ export class CollectionService {
     is_active: boolean;
   }>) {
     const { data, error } = await this.supabase
-      .from('collections')
-      .update(collectionData)
+      .from(this.collectionTable)
+      .update(this.mapCollectionInput(collectionData))
       .eq('collection_id', collectionId)
       .select()
       .single();
@@ -289,7 +322,7 @@ export class CollectionService {
 
     // Xóa bộ sưu tập
     const { error } = await this.supabase
-      .from('collections')
+      .from(this.collectionTable)
       .delete()
       .eq('collection_id', collectionId);
 

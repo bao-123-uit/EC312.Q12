@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, User, Heart, Search, Menu, Tag, Clock, Percent, Gift, Star, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { fetchCategories } from '@/lib/api-client';
+import { fetchCategories, fetchPromotions } from '@/lib/api-client';
 
 interface Deal {
   id: number;
@@ -24,6 +24,9 @@ const PromotionsPage: React.FC = () => {
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [devices, setDevices] = useState<string[]>(['iPhone 17 Pro Max']);
+  const [featuredDeals, setFeaturedDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [isLoadingPromotions, setIsLoadingPromotions] = useState(true);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -41,106 +44,67 @@ const PromotionsPage: React.FC = () => {
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    const loadPromotions = async () => {
+      try {
+        const data = await fetchPromotions();
+        setFeaturedDeals(Array.isArray(data?.featured) ? data.featured : []);
+        setDeals(Array.isArray(data?.deals) ? data.deals : []);
+      } catch (error) {
+        console.error('Error loading promotions:', error);
+      } finally {
+        setIsLoadingPromotions(false);
+      }
+    };
+    loadPromotions();
+  }, []);
+
   const handleCurrencyChange = (currency: string) => {
     setSelectedCurrency(currency);
     setIsCurrencyModalOpen(false);
   };
 
   const copyCode = (code: string) => {
+    if (!code) return;
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const featuredDeals: Deal[] = [
-    {
-      id: 1,
-      title: 'Mua 4 Trả 2',
-      description: 'Mua 4 ốp điện thoại bất kỳ chỉ phải trả tiền 2 ốp',
-      discount: '50%',
-      code: 'BUY4GET2',
-      image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=600&h=400&fit=crop',
-      endDate: '31/12/2024',
-      tag: 'HOT'
-    },
-    {
-      id: 2,
-      title: 'Giảm 30% Toàn Bộ iPhone 17',
-      description: 'Áp dụng cho tất cả ốp iPhone 17 Series',
-      discount: '30%',
-      code: 'IPHONE17',
-      image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=600&h=400&fit=crop',
-      endDate: '25/12/2024',
-      tag: 'MỚI'
-    },
-    {
-      id: 3,
-      title: 'Flash Sale Cuối Tuần',
-      description: 'Giảm giá shock từ T7-CN hàng tuần',
-      discount: '40%',
-      code: 'WEEKEND40',
-      image: 'https://images.unsplash.com/photo-1565849904461-04a3cc76e3a9?w=600&h=400&fit=crop',
-      endDate: '15/12/2024',
-      tag: 'FLASH'
-    }
+  const featuredFallbackImages = [
+    '/about1.jpg',
+    '/about2.jpg',
+    '/about3.jpg',
   ];
 
-  const deals: Deal[] = [
-    {
-      id: 4,
-      title: 'Miễn Phí Vận Chuyển',
-      description: 'Cho đơn hàng từ 100K trở lên',
-      discount: 'FREE SHIP',
-      code: 'FREESHIP100',
-      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop',
-      endDate: '31/12/2024'
-    },
-    {
-      id: 5,
-      title: 'Giảm 20% Khách Hàng Mới',
-      description: 'Dành cho đơn hàng đầu tiên',
-      discount: '20%',
-      code: 'NEW20',
-      image: 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=400&h=300&fit=crop',
-      endDate: '31/12/2024'
-    },
-    {
-      id: 6,
-      title: 'Bundle Deal',
-      description: 'Mua ốp + phụ kiện giảm 25%',
-      discount: '25%',
-      code: 'BUNDLE25',
-      image: 'https://images.unsplash.com/photo-1565849904461-04a3cc76e3a9?w=400&h=300&fit=crop',
-      endDate: '20/12/2024'
-    },
-    {
-      id: 7,
-      title: 'Sinh Nhật GoatTech',
-      description: 'Giảm 35% nhân dịp sinh nhật thương hiệu',
-      discount: '35%',
-      code: 'BDAY35',
-      image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400&h=300&fit=crop',
-      endDate: '10/12/2024'
-    },
-    {
-      id: 8,
-      title: 'Giảm Giá Combo',
-      description: 'Mua 2 ốp bất kỳ giảm 15%',
-      discount: '15%',
-      code: 'COMBO15',
-      image: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=300&fit=crop',
-      endDate: '31/12/2024'
-    },
-    {
-      id: 9,
-      title: 'Student Discount',
-      description: 'Giảm 10% cho học sinh, sinh viên',
-      discount: '10%',
-      code: 'STUDENT10',
-      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=300&fit=crop',
-      endDate: '31/12/2024'
-    }
+  const dealFallbackImages = [
+    '/about4.jpg',
+    '/about1.jpg',
+    '/SP001.png',
   ];
+
+  const placeholderImage =
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='400'><rect width='100%' height='100%' fill='%23f3f4f6'/><text x='50%' y='50%' font-size='20' fill='%239ca3af' dominant-baseline='middle' text-anchor='middle'>No%20Image</text></svg>";
+
+  const formatBadgeDiscount = (value?: string) => {
+    if (!value) return '';
+    const trimmed = value.trim();
+    if (/^[0-9]+(\.[0-9]+)?%?$/.test(trimmed)) {
+      return `-${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  const normalizeImageUrl = (value?: string) => {
+    if (!value) return '';
+    return /^https?:\/\//i.test(value) ? value : '';
+  };
+
+  const resolveFeaturedImage = (_deal: Deal, index: number) =>
+    featuredFallbackImages[index % featuredFallbackImages.length] || placeholderImage;
+
+  const resolveDealImage = (_deal: Deal, index: number) =>
+    dealFallbackImages[index % dealFallbackImages.length] || placeholderImage;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -286,22 +250,37 @@ const PromotionsPage: React.FC = () => {
       {/* Featured Deals */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-4xl font-bold text-center mb-12">Ưu Đãi Nổi Bật</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {featuredDeals.map((deal) => (
-            <div key={deal.id} className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
+        {isLoadingPromotions ? (
+          <div className="text-center text-gray-600">Đang tải ưu đãi...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredDeals.map((deal, index) => (
+              <div key={`${deal.id}-${index}`} className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
               <div className="relative overflow-hidden">
                 {deal.tag && (
                   <span className="absolute top-4 left-4 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold z-10">
                     {deal.tag}
                   </span>
                 )}
-                <div className="absolute top-4 right-4 bg-yellow-400 text-black w-20 h-20 rounded-full flex items-center justify-center font-bold text-lg z-10 shadow-lg">
-                  -{deal.discount}
-                </div>
+                {deal.discount && (
+                  <div className="absolute top-4 right-4 bg-yellow-400 text-black w-20 h-20 rounded-full flex items-center justify-center font-bold text-lg z-10 shadow-lg">
+                    {formatBadgeDiscount(deal.discount)}
+                  </div>
+                )}
                 <img
-                  src={deal.image}
+                  src={resolveFeaturedImage(deal, index)}
                   alt={deal.title}
                   className="w-full h-64 object-cover group-hover:scale-110 transition duration-500"
+                  onError={(event) => {
+                    const fallback = featuredFallbackImages[index % featuredFallbackImages.length];
+                    if (event.currentTarget.src !== fallback) {
+                      event.currentTarget.src = fallback;
+                      return;
+                    }
+                    if (event.currentTarget.src !== placeholderImage) {
+                      event.currentTarget.src = placeholderImage;
+                    }
+                  }}
                 />
               </div>
               <div className="p-6">
@@ -317,11 +296,12 @@ const PromotionsPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs text-gray-600 mb-1">MÃ GIẢM GIÁ:</div>
-                      <div className="text-xl font-bold text-purple-600">{deal.code}</div>
+                      <div className="text-xl font-bold text-purple-600">{deal.code || 'N/A'}</div>
                     </div>
                     <button
                       onClick={() => copyCode(deal.code)}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-60"
+                      disabled={!deal.code}
                     >
                       {copiedCode === deal.code ? '✓ Đã Copy' : 'Copy'}
                     </button>
@@ -336,59 +316,83 @@ const PromotionsPage: React.FC = () => {
                 </Link>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* All Deals */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl font-bold text-center mb-12">Tất Cả Ưu Đãi</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {deals.map((deal) => (
-              <div key={deal.id} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border-2 border-gray-100 hover:border-pink-300 hover:shadow-lg transition">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="bg-gradient-to-br from-pink-500 to-orange-500 text-white w-16 h-16 rounded-xl flex items-center justify-center font-bold shadow-lg">
-                    -{deal.discount}
+          {isLoadingPromotions ? (
+            <div className="text-center text-gray-600">Đang tải ưu đãi...</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {deals.map((deal, index) => (
+                <div key={`${deal.id}-${index}`} className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border-2 border-gray-100 hover:border-pink-300 hover:shadow-lg transition">
+                  <div className="flex items-start justify-between mb-4">
+                    {deal.discount && (
+                      <div className="bg-gradient-to-br from-pink-500 to-orange-500 text-white w-16 h-16 rounded-xl flex items-center justify-center font-bold shadow-lg">
+                        {formatBadgeDiscount(deal.discount)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 text-yellow-500">
+                      <Star className="w-4 h-4 fill-current" />
+                      <Star className="w-4 h-4 fill-current" />
+                      <Star className="w-4 h-4 fill-current" />
+                      <Star className="w-4 h-4 fill-current" />
+                      <Star className="w-4 h-4 fill-current" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-yellow-500">
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
+
+                  <img
+                    src={resolveDealImage(deal, index)}
+                    alt={deal.title}
+                    className="w-full h-40 object-cover rounded-lg mb-4"
+                    onError={(event) => {
+                      const fallback = dealFallbackImages[index % dealFallbackImages.length];
+                      if (event.currentTarget.src !== fallback) {
+                        event.currentTarget.src = fallback;
+                        return;
+                      }
+                      if (event.currentTarget.src !== placeholderImage) {
+                        event.currentTarget.src = placeholderImage;
+                      }
+                    }}
+                  />
+
+                  <h3 className="text-xl font-bold mb-2">{deal.title}</h3>
+                  <p className="text-gray-600 text-sm mb-4">{deal.description}</p>
+
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+                    <Clock className="w-3 h-3" />
+                    <span>Đến {deal.endDate || 'N/A'}</span>
                   </div>
-                </div>
 
-                <h3 className="text-xl font-bold mb-2">{deal.title}</h3>
-                <p className="text-gray-600 text-sm mb-4">{deal.description}</p>
-
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
-                  <Clock className="w-3 h-3" />
-                  <span>Đến {deal.endDate}</span>
-                </div>
-
-                <div className="bg-gray-100 rounded-lg p-3 mb-4 border-2 border-dashed border-gray-300">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono font-bold text-purple-600">{deal.code}</span>
-                    <button
-                      onClick={() => copyCode(deal.code)}
-                      className="text-pink-600 hover:text-pink-700 text-sm font-semibold"
-                    >
-                      {copiedCode === deal.code ? '✓' : 'Copy'}
-                    </button>
+                  <div className="bg-gray-100 rounded-lg p-3 mb-4 border-2 border-dashed border-gray-300">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-purple-600">{deal.code || 'N/A'}</span>
+                      <button
+                        onClick={() => copyCode(deal.code)}
+                        className="text-pink-600 hover:text-pink-700 text-sm font-semibold disabled:opacity-60"
+                        disabled={!deal.code}
+                      >
+                        {copiedCode === deal.code ? '✓' : 'Copy'}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <Link
-                  href="/shop"
-                  className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-pink-600 to-orange-600 text-white py-2 rounded-lg font-semibold hover:from-pink-700 hover:to-orange-700 transition"
-                >
-                  Áp Dụng Ngay <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
-            ))}
-          </div>
+                  <Link
+                    href="/shop"
+                    className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-pink-600 to-orange-600 text-white py-2 rounded-lg font-semibold hover:from-pink-700 hover:to-orange-700 transition"
+                  >
+                    Áp Dụng Ngay <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

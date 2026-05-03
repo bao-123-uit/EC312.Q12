@@ -307,4 +307,87 @@ export class AuthService {
       throw new BadRequestException(error.message || 'Đổi mật khẩu thất bại');
     }
   }
+
+  async changeEmail(userId: string, newEmail: string) {
+    try {
+      const normalizedEmail = newEmail?.toLowerCase().trim();
+
+      // 1. Validate input cơ bản
+      if (!normalizedEmail) {
+        throw new BadRequestException('Email mới là bắt buộc');
+      }
+
+      const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+      if (!gmailRegex.test(normalizedEmail)) {
+        throw new BadRequestException('Chỉ chấp nhận địa chỉ Gmail hợp lệ');
+      }
+
+      // 2. Lấy user hiện tại
+      const user = await this.getUserById(userId);
+      if (!user) {
+        throw new BadRequestException('Không tìm thấy user');
+      }
+
+      if (user.email === normalizedEmail) {
+        throw new BadRequestException('Email mới trùng với email hiện tại');
+      }
+
+      // 3. Kiểm tra email đã được dùng chưa
+      const { data: existingUser } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictException('Email đã được sử dụng');
+      }
+
+      // 4. Cập nhật email trong bảng users
+      const { data: updatedUser, error: updateError } = await this.supabase
+        .from('users')
+        .update({
+          email: normalizedEmail,
+          email_verified: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
+        .select('*')
+        .single();
+
+      if (updateError || !updatedUser) {
+        this.logger.error(`Change email error: ${updateError?.message || 'No updated user returned'}`);
+        throw new BadRequestException('Không thể đổi email');
+      }
+
+      // 5. Tạo lại JWT để frontend cập nhật email mới ngay lập tức
+      const payload = {
+        sub: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.is_admin ? 'admin' : updatedUser.role,
+      };
+      const access_token = this.jwtService.sign(payload);
+
+      return {
+        success: true,
+        message: 'Đổi email thành công',
+        access_token,
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          full_name: updatedUser.full_name,
+          phone: updatedUser.phone,
+          role: updatedUser.role,
+          is_admin: updatedUser.is_admin,
+          updated_at: updatedUser.updated_at,
+        },
+      };
+    } catch (error: any) {
+      if (error instanceof BadRequestException || error instanceof ConflictException) {
+        throw error;
+      }
+
+      throw new BadRequestException(error.message || 'Đổi email thất bại');
+    }
+  }
 }

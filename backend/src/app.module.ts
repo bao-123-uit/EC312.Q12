@@ -20,12 +20,15 @@ import { DesignModule } from './design/design.module';
 import { MessengerModule } from './messenger/messenger.module';
 import { PhoneModelModule } from './phone-model/phone-model.module';
 import { PaymentModule } from './payment/payment.module';
+import { CsrfLabModule } from './csrf-lab/csrf-lab.module';
+import { PromotionModule } from './promotion/promotion.module';
+import { CouponModule } from './coupon/coupon.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
     AuthModule,
@@ -43,6 +46,9 @@ import { PaymentModule } from './payment/payment.module';
     MessengerModule,
     PhoneModelModule,
     PaymentModule,
+    CsrfLabModule,
+    PromotionModule,
+    CouponModule,
   ],
   controllers: [AppController],
   providers: [AppService, SupabaseService],

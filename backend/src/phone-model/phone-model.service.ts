@@ -144,8 +144,12 @@ export class PhoneModelService {
         .eq('product_id', productId);
 
       if (error) {
+        if (error.message?.includes('product_compatibility')) {
+          this.logger.warn('Bảng product_compatibility không tồn tại, bỏ qua compatible models.');
+          return [];
+        }
         this.logger.error(`Lỗi lấy compatible models: ${error.message}`);
-        throw error;
+        return [];
       }
 
       // Extract phone models từ kết quả
@@ -156,7 +160,7 @@ export class PhoneModelService {
       return models;
     } catch (error) {
       this.logger.error(`Lỗi getCompatibleModels: ${error.message}`);
-      throw error;
+      return [];
     }
   }
 

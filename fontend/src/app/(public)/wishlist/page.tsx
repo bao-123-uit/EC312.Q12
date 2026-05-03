@@ -125,12 +125,6 @@ export default function WishlistPage() {
                     </h3>
                   </Link>
 
-                  <div className="flex items-center gap-1 mb-3">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm">4.5</span>
-                    <span className="text-sm text-gray-500">(0)</span>
-                  </div>
-
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold text-pink-600">
                       {formatPrice(product.sale_price || product.price)}

@@ -19,10 +19,15 @@ import { ConfigModule , ConfigService } from '@nestjs/config';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { JwtAuthGuard, RolesGuard, CustomerGuard } from './guards';
+import { JwtAuthGuard, CookieAuthGuard, RolesGuard, CustomerGuard } from './guards';
+import { CsrfLabModule } from '../csrf-lab/csrf-lab.module';
 
 @Module({
-  imports: [ConfigModule,PassportModule,JwtModule.registerAsync({
+  imports: [
+    ConfigModule,
+    PassportModule,
+    CsrfLabModule,
+    JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -35,6 +40,7 @@ import { JwtAuthGuard, RolesGuard, CustomerGuard } from './guards';
   providers: [
     AuthService,
     JwtAuthGuard,
+    CookieAuthGuard,
     RolesGuard,
     CustomerGuard,
     
@@ -42,6 +48,7 @@ import { JwtAuthGuard, RolesGuard, CustomerGuard } from './guards';
   exports: [
     AuthService,
     JwtAuthGuard,
+    CookieAuthGuard,
     RolesGuard,
     CustomerGuard,
   ],

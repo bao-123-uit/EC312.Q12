@@ -5,6 +5,16 @@ import { CategoryService } from './category.service';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  @Get('admin/all')
+  async getAllCategories() {
+    return await this.categoryService.getAllCategories();
+  }
+
+  @Post('sync-from-db')
+  async syncCategoryListFromDatabase() {
+    return await this.categoryService.syncCategoryListFromDatabase();
+  }
+
   @Get()
   async getCategories() {
     return await this.categoryService.getCategories();
