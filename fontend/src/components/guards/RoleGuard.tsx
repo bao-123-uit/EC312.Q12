@@ -1,8 +1,10 @@
 'use client';
 
 import React, { ReactNode, useEffect } from 'react';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+
+type UserRole = string;
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -54,7 +56,7 @@ export function RoleGuard({
   }
 
   // Kiểm tra role
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user || !user.role || !allowedRoles.includes(user.role)) {
     if (fallback) return <>{fallback}</>;
     return (
       <div className="text-center py-10">
