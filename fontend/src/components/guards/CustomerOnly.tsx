@@ -23,7 +23,8 @@ export function CustomerOnly({
   fallback,
   showLoginPrompt = true,
 }: CustomerOnlyProps) {
-  const { user, isCustomer, loading, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+  const isCustomer = !!user && user.role !== 'ADMIN' && user.role !== 'admin';
 
   // Đang loading
   if (loading) {
