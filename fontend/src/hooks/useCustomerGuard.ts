@@ -24,9 +24,11 @@ interface UseCustomerGuardOptions {
  * };
  */
 export function useCustomerGuard(options: UseCustomerGuardOptions = {}) {
-  const { user, isCustomer, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const { redirectTo, onDenied } = options;
+
+  const isCustomer = !!user && user.role !== 'ADMIN' && user.role !== 'admin';
 
   // Có thể thực hiện action không?
   const canExecute = isAuthenticated && isCustomer;
