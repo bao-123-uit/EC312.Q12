@@ -210,7 +210,7 @@ const PromotionsPage: React.FC = () => {
           <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
             <Link href="/" className="text-sm font-medium hover:text-pink-600">Trang Chủ</Link>
             <Link href="/shop" className="text-sm font-medium hover:text-pink-600">Cửa Hàng</Link>
-            <button className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button>
+            {/* <button className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button> */}
             <Link href="/about" className="text-sm font-medium hover:text-pink-600">Về Chúng Tôi</Link>
             <Link href="/contact" className="text-sm font-medium hover:text-pink-600">Liên Hệ</Link>
             <Link href="/promotions" className="text-sm font-medium text-red-600">Khuyến Mại</Link>
