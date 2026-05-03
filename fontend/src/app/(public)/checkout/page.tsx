@@ -112,7 +112,7 @@ export default function CheckoutPage() {
         if (user) {
           setShippingAddress((prev) => ({
             ...prev,
-            fullname: user.fullname || user.firstname || '',
+            fullname: user.fullName || user.full_name || user.name || '',
             phone: user.phone || '',
           }));
         }
