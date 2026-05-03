@@ -223,9 +223,9 @@ return (
         <Link href="/shop" className="text-sm font-medium hover:text-pink-600">
           Cửa Hàng
         </Link>
-        <Link href="/collections" className="text-sm font-medium hover:text-pink-600">
+        {/* <Link href="/collections" className="text-sm font-medium hover:text-pink-600">
           Bộ Sưu Tập
-        </Link>
+        </Link> */}
         <Link href="/about" className="text-sm font-medium hover:text-pink-600">
           Về Chúng Tôi
         </Link>
