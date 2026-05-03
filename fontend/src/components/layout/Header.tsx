@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 interface HeaderProps {
   onCartClick?: () => void;
   onWishlistClick?: () => void;
+  wishlistCount?: number;
   showDeviceSelector?: boolean;
   devices?: string[];
   selectedDevice?: string;
@@ -27,6 +28,7 @@ interface HeaderProps {
 export default function Header({
   onCartClick,
   onWishlistClick,
+  wishlistCount: wishlistCountOverride,
   showDeviceSelector = false,
   devices = [],
   selectedDevice = '',
@@ -57,6 +59,7 @@ export default function Header({
   const { user, isAuthenticated, logout, getDisplayName } = useAuth();
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
+  const effectiveWishlistCount = wishlistCountOverride ?? wishlistCount;
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -122,10 +125,10 @@ return (
             className="relative text-gray-800 hover:text-pink-600"
             onClick={handleWishlistClick}
           >
-            <Heart className={`w-6 h-6 ${wishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
-            {wishlistCount > 0 && (
+            <Heart className={`w-6 h-6 ${effectiveWishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+            {effectiveWishlistCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {wishlistCount}
+                {effectiveWishlistCount}
               </span>
             )}
           </button>
