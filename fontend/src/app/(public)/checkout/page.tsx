@@ -205,9 +205,9 @@ export default function CheckoutPage() {
           variant_id: item.variant_id,//
           phone_model_id: item.phone_model_id,
           phone_model_name: item.phone_model_name,
-          product_name: item.product_name || item.products?.product_name || `Product #${item.product_id}`,
+          product_name: item.product_name || `Product #${item.product_id}`,
           quantity: item.quantity,//
-          unit_price: item.price || item.products?.sale_price || item.products?.price || 0,
+          unit_price: item.price || 0,
           discount_amount: 0,//
         })),
 
