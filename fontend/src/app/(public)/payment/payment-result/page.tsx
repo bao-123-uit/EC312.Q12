@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, Clock, ArrowLeft, Receipt, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -20,7 +20,7 @@ interface PaymentResult {
   isPaid?: boolean;
 }
 
-const PaymentResultPage: React.FC = () => {
+function PaymentResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [result, setResult] = useState<PaymentResult>({});
@@ -304,6 +304,12 @@ const PaymentResultPage: React.FC = () => {
       </div>
     </div>
   );
-};
+}
+
+const PaymentResultPage: React.FC = () => (
+  <Suspense fallback={<div className="min-h-screen bg-white" />}>
+    <PaymentResultContent />
+  </Suspense>
+);
 
 export default PaymentResultPage;
