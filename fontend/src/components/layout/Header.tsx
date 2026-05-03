@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 
 
 interface HeaderProps {
-  // onCartClick?: () => void;
+  onCartClick?: () => void;
   onWishlistClick?: () => void;
   showDeviceSelector?: boolean;
   devices?: string[];
@@ -25,7 +25,7 @@ interface HeaderProps {
 }
 
 export default function Header({
-  // onCartClick,
+  onCartClick,
   onWishlistClick,
   showDeviceSelector = false,
   devices = [],
@@ -38,6 +38,11 @@ export default function Header({
   const router = useRouter();
 
   const handleCartClick = () => {
+    if (onCartClick) {
+      onCartClick();
+      return;
+    }
+
     router.push('/shopping-cart');
   };
   
