@@ -241,7 +241,7 @@ const AdminDashboard: React.FC = () => {
     }
   }, [isMounted, isAuthenticated, activeTab]);
 
-  const revenue7Days = dashboard?.revenue7Days || [];
+  const revenue7Days: number[] = dashboard?.revenue7Days || [];
   const bestSellers = dashboard?.bestSellers || [];
 
   const stats = dashboard ? [
@@ -758,7 +758,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <h3 className="text-lg font-bold mb-4">Doanh Thu 7 Ngày Qua</h3>
                   <div className="h-64 flex items-end justify-around gap-2">
-                    {revenue7Days.length === 7 ? revenue7Days.map((amount, i) => (
+                    {revenue7Days.length === 7 ? revenue7Days.map((amount: number, i: number) => (
                       <div key={i} className="flex-1 flex flex-col items-center">
                         <div className="w-full bg-pink-600 rounded-t" style={{ height: `${Math.max(amount / Math.max(...revenue7Days, 1) * 100, 5)}%` }}></div>
                         <span className="text-xs text-gray-600 mt-2">T{i + 2}</span>
