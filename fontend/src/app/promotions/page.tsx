@@ -249,7 +249,7 @@ const PromotionsPage: React.FC = () => {
 
       {/* Featured Deals */}
       <div className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-4xl font-bold text-center mb-12">Ưu Đãi Nổi Bật</h2>
+        {/* <h2 className="text-4xl font-bold text-center mb-12">Ưu Đãi Nổi Bật</h2> */}
         {isLoadingPromotions ? (
           <div className="text-center text-gray-600">Đang tải ưu đãi...</div>
         ) : (
