@@ -319,26 +319,34 @@ export default function CartPage() {
               </h2>
 
               <div className="space-y-3 mb-6">
+                {(() => {
+                  const shippingFee = 30000;
+                  const totalWithShipping = cartTotal + shippingFee;
+                  return (
+                    <>
                 <div className="flex justify-between text-gray-600">
                   <span>Tạm tính ({itemCount} sản phẩm)</span>
                   <span>{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Phí vận chuyển</span>
-                  <span className="text-green-600">Miễn phí</span>
+                  <span className="text-pink-600">{formatPrice(shippingFee)}</span>
                 </div>
                 <hr />
                 <div className="flex justify-between text-xl font-bold">
                   <span>Tổng cộng</span>
-                  <span className="text-pink-600">{formatPrice(cartTotal)}</span>
+                  <span className="text-pink-600">{formatPrice(totalWithShipping)}</span>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <Link
                 href="/checkout"
                 className="w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white py-4 rounded-xl font-semibold text-center block transition"
               >
-                💳 Tiến hành thanh toán
+                 Tiến hành thanh toán
               </Link>
 
               <Link
