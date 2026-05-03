@@ -242,7 +242,8 @@ const AdminDashboard: React.FC = () => {
   }, [isMounted, isAuthenticated, activeTab]);
 
   const revenue7Days: number[] = dashboard?.revenue7Days || [];
-  const bestSellers = dashboard?.bestSellers || [];
+  const bestSellers: Array<{ id: number; name: string; sold: number; revenue: number }> =
+    dashboard?.bestSellers || [];
 
   const stats = dashboard ? [
     {
