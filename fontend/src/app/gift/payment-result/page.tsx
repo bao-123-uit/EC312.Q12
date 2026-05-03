@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { verifyGiftPayment } from '@/lib/api-client';
@@ -10,7 +10,7 @@ import TopBanner from '@/components/layout/TopBanner';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-export default function GiftPaymentResultPage() {
+function GiftPaymentResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -181,5 +181,13 @@ export default function GiftPaymentResultPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function GiftPaymentResultPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <GiftPaymentResultContent />
+    </Suspense>
   );
 }

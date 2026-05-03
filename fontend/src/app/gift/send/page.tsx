@@ -1,6 +1,6 @@
-  'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchProductById, createGiftPayment, CreateGiftPaymentData } from '@/lib/api-client';
@@ -10,7 +10,7 @@ import TopBanner from '@/components/layout/TopBanner';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-export default function SendGiftPage() {
+function SendGiftContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get('productId');
@@ -368,5 +368,13 @@ export default function SendGiftPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function SendGiftPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <SendGiftContent />
+    </Suspense>
   );
 }
