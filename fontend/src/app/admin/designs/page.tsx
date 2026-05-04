@@ -32,6 +32,11 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   printed: { label: 'Đã in', color: 'bg-purple-100 text-purple-800' },
 };
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://localhost:3001';
+
 export default function AdminDesignsPage() {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +49,8 @@ export default function AdminDesignsPage() {
   const loadDesigns = async () => {
     try {
       const url = filterStatus 
-        ? `http://localhost:3001/designs/admin/all?status=${filterStatus}`
-        : 'http://localhost:3001/designs/admin/all';
+        ? `${API_URL}/designs/admin/all?status=${filterStatus}`
+        : `${API_URL}/designs/admin/all`;
       
       const res = await fetch(url);
       if (res.ok) {
@@ -66,7 +71,7 @@ export default function AdminDesignsPage() {
   const approveDesign = async (designId: string) => {
     setActionLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/designs/admin/${designId}/approve`, {
+      const res = await fetch(`${API_URL}/designs/admin/${designId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminNotes }),
@@ -96,7 +101,7 @@ export default function AdminDesignsPage() {
 
     setActionLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/designs/admin/${designId}/reject`, {
+      const res = await fetch(`${API_URL}/designs/admin/${designId}/reject`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminNotes }),
@@ -188,7 +193,7 @@ export default function AdminDesignsPage() {
                 <div className="aspect-[3/4] bg-gray-100 relative">
                   {design.preview_image_url ? (
                     <img
-                      src={`http://localhost:3001${design.preview_image_url}`}
+                      src={`${API_URL}${design.preview_image_url}`}
                       alt="Design preview"
                       className="w-full h-full object-contain"
                       onError={(e) => {
@@ -290,7 +295,7 @@ export default function AdminDesignsPage() {
                 <div className="aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden relative">
                   {selectedDesign.preview_image_url ? (
                     <img
-                      src={`http://localhost:3001${selectedDesign.preview_image_url}`}
+                      src={`${API_URL}${selectedDesign.preview_image_url}`}
                       alt="Design preview"
                       className="w-full h-full object-contain"
                       onError={(e) => {
@@ -310,7 +315,7 @@ export default function AdminDesignsPage() {
 
                 {selectedDesign.high_res_image_url && (
                   <a
-                    href={`http://localhost:3001${selectedDesign.high_res_image_url}`}
+                    href={`${API_URL}${selectedDesign.high_res_image_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-4 block text-center bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
