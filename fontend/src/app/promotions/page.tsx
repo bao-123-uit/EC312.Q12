@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, Heart, Search, Menu, Tag, Clock, Percent, Gift, Star, ChevronRight } from 'lucide-react';
+import { Tag, Clock, Percent, Gift, Star, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { fetchCategories, fetchPromotions } from '@/lib/api-client';
+import TopBanner from '@/components/layout/TopBanner';
+import Header from '@/components/layout/Header';
+import CurrencyModal from '@/components/modals/CurrencyModal';
 
 interface Deal {
   id: number;
@@ -17,8 +20,6 @@ interface Deal {
 }
 
 const PromotionsPage: React.FC = () => {
-  const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [selectedDevice, setSelectedDevice] = useState('iPhone 17 Pro Max');
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
@@ -61,7 +62,6 @@ const PromotionsPage: React.FC = () => {
 
   const handleCurrencyChange = (currency: string) => {
     setSelectedCurrency(currency);
-    setIsCurrencyModalOpen(false);
   };
 
   const copyCode = (code: string) => {
@@ -109,114 +109,24 @@ const PromotionsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Currency Modal */}
-      {isCurrencyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setIsCurrencyModalOpen(false)}>
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">CHỌN LOẠI TIỀN TỆ</h2>
-              <button onClick={() => setIsCurrencyModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-semibold mb-2 text-gray-700">QUỐC GIA/KHU VỰC:</label>
-              <select 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-600"
-                value={selectedCurrency}
-                onChange={(e) => handleCurrencyChange(e.target.value)}
-              >
-                <option value="USD">United States (USD $)</option>
-                <option value="VND">Việt Nam (VND ₫)</option>
-              </select>
-            </div>
+      <CurrencyModal
+        isOpen={isCurrencyModalOpen}
+        onClose={() => setIsCurrencyModalOpen(false)}
+        selectedCurrency={selectedCurrency}
+        onCurrencyChange={handleCurrencyChange}
+      />
 
-            <button 
-              onClick={() => setIsCurrencyModalOpen(false)}
-              className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-            >
-              ÁP DỤNG
-            </button>
-          </div>
-        </div>
-      )}
+      <TopBanner />
 
-      {/* Top Banner */}
-      <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white py-2 px-4 text-center text-sm font-semibold animate-pulse">
-        <div className="max-w-7xl mx-auto">
-          🔥 KHUYẾN MÃI ĐẶC BIỆT - GIẢM ĐẾN 50% - MUA NGAY KẺO LỠ! 🔥
-        </div>
-      </div>
-
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <button className="lg:hidden">
-                <Menu className="w-6 h-6" />
-              </button>
-              <button className="lg:hidden">
-                <Search className="w-6 h-6" />
-              </button>
-            </div>
-
-            <Link href="/" className="text-2xl font-bold tracking-wider">
-              GoatTech
-            </Link>
-
-            <div className="flex items-center gap-4">
-              <button className="hidden lg:block px-4 py-2 text-sm font-medium border rounded-lg" onClick={() => setIsCurrencyModalOpen(true)}>
-                {selectedCurrency} {selectedCurrency === 'USD' ? '$' : '₫'}
-              </button>
-
-              <select 
-                value={selectedDevice}
-                onChange={(e) => setSelectedDevice(e.target.value)}
-                className="hidden lg:block px-4 py-2 border rounded-lg text-sm"
-              >
-                {devices.map((device) => (
-                  <option key={device} value={device}>{device}</option>
-                ))}
-              </select>
-
-              <button className="relative">
-                <Heart className="w-6 h-6" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-
-              <Link href="/account">
-                <User className="w-6 h-6" />
-              </Link>
-
-              <button className="relative">
-                <ShoppingCart className="w-6 h-6" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center justify-center gap-8 mt-4 pt-4 border-t">
-            <Link href="/" className="text-sm font-medium hover:text-pink-600">Trang Chủ</Link>
-            <Link href="/shop" className="text-sm font-medium hover:text-pink-600">Cửa Hàng</Link>
-            {/* <button className="text-sm font-medium hover:text-pink-600">Bộ Sưu Tập</button> */}
-            <Link href="/about" className="text-sm font-medium hover:text-pink-600">Về Chúng Tôi</Link>
-            <Link href="/contact" className="text-sm font-medium hover:text-pink-600">Liên Hệ</Link>
-            <Link href="/promotions" className="text-sm font-medium text-red-600">Khuyến Mại</Link>
-          </nav>
-        </div>
-      </header>
+      <Header
+        showDeviceSelector
+        devices={devices}
+        selectedDevice={selectedDevice}
+        onDeviceChange={setSelectedDevice}
+        showCurrencySelector
+        selectedCurrency={selectedCurrency}
+        onCurrencyClick={() => setIsCurrencyModalOpen(true)}
+      />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-red-600 via-pink-600 to-orange-600 text-white py-16">
