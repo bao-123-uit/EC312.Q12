@@ -228,7 +228,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════════════════
           HERO SECTION - Modern Carousel
       ═══════════════════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[500px] md:h-[600px] overflow-hidden">
+      <section className="relative h-[380px] md:h-[480px] overflow-hidden">
         {heroSlides.map((slide, index) => (
           <div
             key={index}
@@ -243,7 +243,7 @@ export default function HomePage() {
             
             <div className="relative h-full max-w-7xl mx-auto px-4 flex items-center justify-center">
               <div className="text-center text-white">
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 drop-shadow-lg animate-fade-in">
+                <h1 className="text-5xl md:text-6xl font-bold mb-6 drop-shadow-lg animate-fade-in">
                   {slide.title}
                 </h1>
                 <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-2xl mx-auto">
