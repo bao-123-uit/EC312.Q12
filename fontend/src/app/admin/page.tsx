@@ -25,10 +25,11 @@ import {
   Plus,
   Check,
   XCircle,
-  MessageSquare
+  MessageSquare,
+  Tag
 } from 'lucide-react';
 import Link from 'next/link';
-import { fetchProducts, fetchOrders, fetchAllOrdersAdmin, fetchUsers, syncCategoryListFromDatabase, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllReviews, approveReview, deleteReview, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard } from '@/lib/api-client';
+import { fetchProducts, fetchOrders, fetchAllOrdersAdmin, fetchUsers, syncCategoryListFromDatabase, createProduct, updateProduct, deleteProduct, createCategory, updateCategory, deleteCategory, fetchAllContacts, updateContactStatus, deleteContact, fetchAllCollections, updateProductCollections, fetchProductCollections, fetchAdminDashboard, fetchAllCouponsAdmin, createCouponAdmin, updateCouponAdmin, deleteCouponAdmin } from '@/lib/api-client';
 
 interface Collection {
   collection_id: number;
@@ -89,17 +90,19 @@ interface Category {
   display_order: number;
 }
 
-interface Review {
-  review_id: number;
-  product_id: number;
-  user_id: string;
-  rating: number;
-  review_title?: string;
-  review_text?: string;
-  is_approved: boolean;
-  created_at: string;
-  user_name?: string;
-  product_name?: string;
+interface Coupon {
+  coupon_id: number;
+  coupon_code: string;
+  coupon_type: string;
+  discount_value: number;
+  min_order_amount?: number | null;
+  max_discount_amount?: number | null;
+  usage_limit?: number | null;
+  used_count?: number | null;
+  valid_from: string;
+  valid_to: string;
+  is_active: boolean;
+  description?: string | null;
 }
 
 interface ContactMessage {
@@ -125,7 +128,7 @@ const AdminDashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [contacts, setContacts] = useState<ContactMessage[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
@@ -137,6 +140,24 @@ const AdminDashboard: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  // Coupon modal state
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponModalType, setCouponModalType] = useState<'add' | 'edit'>('add');
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+
+  const [couponFormData, setCouponFormData] = useState({
+    coupon_code: '',
+    coupon_type: 'percent',
+    discount_value: 0,
+    min_order_amount: 0,
+    max_discount_amount: 0,
+    usage_limit: 0,
+    valid_from: '',
+    valid_to: '',
+    is_active: true,
+    description: '',
+  });
   
   // Form states for product
   const [formData, setFormData] = useState({
@@ -218,9 +239,10 @@ const AdminDashboard: React.FC = () => {
         const syncResult = await syncCategoryListFromDatabase();
         setCategories(Array.isArray(syncResult?.data) ? syncResult.data : []);
       }
-      if (activeTab === 'reviews' || activeTab === 'dashboard') {
-        const data = await fetchAllReviews();
-        setReviews(Array.isArray(data) ? data : []);
+      if (activeTab === 'promotions') {
+        const result = await fetchAllCouponsAdmin();
+        const data = Array.isArray(result?.data) ? result.data : (Array.isArray(result) ? result : []);
+        setCoupons(data);
       }
       if (activeTab === 'contacts' || activeTab === 'dashboard') {
         const data = await fetchAllContacts();
@@ -308,7 +330,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'orders', label: 'Đơn Hàng', icon: ShoppingCart },
     { id: 'customers', label: 'Khách Hàng', icon: Users },
     { id: 'categories', label: 'Danh Mục', icon: FolderTree },
-    { id: 'reviews', label: 'Đánh Giá', icon: Star },
+    { id: 'promotions', label: 'Khuyến Mại', icon: Tag },
     { id: 'contacts', label: 'Tin Nhắn', icon: MessageSquare },
     { id: 'designs', label: ' Thiết Kế', icon: Package, isLink: true, href: '/admin/designs' },
     { id: 'templates', label: 'Các mẫu điện thoại', icon: Package, isLink: true, href: '/admin/templates' },
@@ -576,27 +598,112 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Review handlers
-  const handleApproveReview = async (id: number, approve: boolean) => {
+  // Coupon handlers
+  const toInputDateTime = (value?: string | null) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const offsetMs = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  };
+
+  const openCouponModal = (type: 'add' | 'edit', coupon?: Coupon) => {
+    setCouponModalType(type);
+    setSelectedCoupon(coupon || null);
+    if (type === 'edit' && coupon) {
+      setCouponFormData({
+        coupon_code: coupon.coupon_code || '',
+        coupon_type: coupon.coupon_type || 'percent',
+        discount_value: Number(coupon.discount_value || 0),
+        min_order_amount: Number(coupon.min_order_amount || 0),
+        max_discount_amount: Number(coupon.max_discount_amount || 0),
+        usage_limit: Number(coupon.usage_limit || 0),
+        valid_from: toInputDateTime(coupon.valid_from),
+        valid_to: toInputDateTime(coupon.valid_to),
+        is_active: coupon.is_active ?? true,
+        description: coupon.description || '',
+      });
+    } else {
+      setCouponFormData({
+        coupon_code: '',
+        coupon_type: 'percent',
+        discount_value: 0,
+        min_order_amount: 0,
+        max_discount_amount: 0,
+        usage_limit: 0,
+        valid_from: '',
+        valid_to: '',
+        is_active: true,
+        description: '',
+      });
+    }
+    setShowCouponModal(true);
+  };
+
+  const closeCouponModal = () => {
+    setShowCouponModal(false);
+    setSelectedCoupon(null);
+  };
+
+  const handleSaveCoupon = async () => {
+    if (!couponFormData.coupon_code.trim()) {
+      alert('Vui lòng nhập mã giảm giá!');
+      return;
+    }
+    if (!couponFormData.coupon_type.trim()) {
+      alert('Vui lòng chọn loại mã giảm giá!');
+      return;
+    }
+    if (!couponFormData.valid_from || !couponFormData.valid_to) {
+      alert('Vui lòng chọn thời gian áp dụng!');
+      return;
+    }
+
+    const payload = {
+      coupon_code: couponFormData.coupon_code.trim(),
+      coupon_type: couponFormData.coupon_type.trim(),
+      discount_value: Number(couponFormData.discount_value || 0),
+      min_order_amount: couponFormData.min_order_amount ? Number(couponFormData.min_order_amount) : null,
+      max_discount_amount: couponFormData.max_discount_amount ? Number(couponFormData.max_discount_amount) : null,
+      usage_limit: couponFormData.usage_limit ? Number(couponFormData.usage_limit) : null,
+      valid_from: new Date(couponFormData.valid_from).toISOString(),
+      valid_to: new Date(couponFormData.valid_to).toISOString(),
+      is_active: !!couponFormData.is_active,
+      description: couponFormData.description?.trim() || null,
+    };
+
     try {
-      const result = await approveReview(id, approve);
-      if (!result.error) {
-        alert(approve ? 'Đã duyệt đánh giá!' : 'Đã từ chối đánh giá!');
-        loadData();
-      } else {
-        alert('Lỗi: ' + result.error.message);
+      setLoading(true);
+      if (couponModalType === 'add') {
+        const result = await createCouponAdmin(payload);
+        if (!result.error) {
+          alert('Thêm khuyến mại thành công!');
+        } else {
+          alert('Lỗi: ' + result.error.message);
+        }
+      } else if (selectedCoupon) {
+        const result = await updateCouponAdmin(selectedCoupon.coupon_id, payload);
+        if (!result.error) {
+          alert('Cập nhật khuyến mại thành công!');
+        } else {
+          alert('Lỗi: ' + result.error.message);
+        }
       }
+      closeCouponModal();
+      loadData();
     } catch (error: any) {
       alert('Lỗi: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteReview = async (id: number) => {
-    if (confirm('Bạn có chắc chắn muốn xóa đánh giá này?')) {
+  const handleDeleteCoupon = async (couponId: number) => {
+    if (confirm('Bạn có chắc chắn muốn xóa khuyến mại này?')) {
       try {
-        const result = await deleteReview(id);
+        const result = await deleteCouponAdmin(couponId);
         if (!result.error) {
-          alert('Xóa đánh giá thành công!');
+          alert('Xóa khuyến mại thành công!');
           loadData();
         } else {
           alert('Lỗi: ' + result.error.message);
@@ -654,6 +761,22 @@ const AdminDashboard: React.FC = () => {
   const filteredCategories = categories.filter(c => 
     c.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredCoupons = coupons.filter(c =>
+    c.coupon_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatCouponDiscount = (coupon: Coupon) => {
+    const type = String(coupon.coupon_type || '').toLowerCase();
+    if (type.includes('free_shipping') || type.includes('freeship')) {
+      return 'FREE SHIP';
+    }
+    if (type.includes('percent') || type.includes('percentage')) {
+      return `${coupon.discount_value}%`;
+    }
+    return `${Number(coupon.discount_value || 0).toLocaleString('vi-VN')}₫`;
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('customer');
@@ -1124,74 +1247,95 @@ const AdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* REVIEWS TAB */}
-          {activeTab === 'reviews' && (
+          {/* PROMOTIONS TAB */}
+          {activeTab === 'promotions' && (
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-bold mb-6">Quản Lý Đánh Giá ({reviews.length})</h3>
-              <div className="space-y-4">
-                {loading ? (
-                  <p className="text-center text-gray-500 py-8">Đang tải...</p>
-                ) : reviews.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Chưa có đánh giá nào.</p>
-                ) : (
-                  reviews.map((review) => (
-                    <div key={review.review_id} className={`border rounded-lg p-4 ${review.is_approved ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex">
-                              {[1,2,3,4,5].map(i => (
-                                <Star 
-                                  key={i} 
-                                  className={`w-4 h-4 ${i <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} 
-                                />
-                              ))}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold">Quản Lý Khuyến Mại ({coupons.length})</h3>
+                <button
+                  onClick={() => openCouponModal('add')}
+                  className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Thêm Khuyến Mại
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm mã khuyến mại..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giảm</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hiệu lực</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sử dụng</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-6 text-center text-gray-500">Đang tải...</td>
+                      </tr>
+                    ) : filteredCoupons.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-6 text-center text-gray-500">Chưa có khuyến mại nào.</td>
+                      </tr>
+                    ) : (
+                      filteredCoupons.map((coupon) => (
+                        <tr key={coupon.coupon_id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 font-medium">{coupon.coupon_code}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">{coupon.coupon_type}</td>
+                          <td className="px-6 py-4 font-semibold text-pink-600">{formatCouponDiscount(coupon)}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {coupon.valid_from ? new Date(coupon.valid_from).toLocaleDateString('vi-VN') : '-'}
+                            {' → '}
+                            {coupon.valid_to ? new Date(coupon.valid_to).toLocaleDateString('vi-VN') : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {coupon.used_count || 0}
+                            {coupon.usage_limit ? ` / ${coupon.usage_limit}` : ''}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${coupon.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                              {coupon.is_active ? 'Đang chạy' : 'Tạm dừng'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openCouponModal('edit', coupon)}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCoupon(coupon.coupon_id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
-                            <span className="font-semibold">{review.user_name || 'Khách hàng'}</span>
-                            <span className="text-sm text-gray-500">
-                              {new Date(review.created_at).toLocaleDateString('vi-VN')}
-                            </span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${review.is_approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {review.is_approved ? 'Đã duyệt' : 'Chờ duyệt'}
-                            </span>
-                          </div>
-                          {review.review_title && (
-                            <h4 className="font-medium text-gray-800 mb-1">{review.review_title}</h4>
-                          )}
-                          <p className="text-gray-700 mb-2">{review.review_text || 'Không có nội dung'}</p>
-                          <div className="text-sm text-gray-500">Sản phẩm: {review.product_name || `ID: ${review.product_id}`}</div>
-                        </div>
-                        <div className="flex gap-2 ml-4">
-                          {!review.is_approved && (
-                            <button 
-                              onClick={() => handleApproveReview(review.review_id, true)}
-                              className="text-green-600 hover:text-green-800 p-1"
-                              title="Duyệt"
-                            >
-                              <Check className="w-5 h-5" />
-                            </button>
-                          )}
-                          {review.is_approved && (
-                            <button 
-                              onClick={() => handleApproveReview(review.review_id, false)}
-                              className="text-orange-600 hover:text-orange-800 p-1"
-                              title="Bỏ duyệt"
-                            >
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleDeleteReview(review.review_id)}
-                            className="text-red-600 hover:text-red-800 p-1"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1522,6 +1666,153 @@ const AdminDashboard: React.FC = () => {
                   <button 
                     type="button"
                     onClick={closeModal}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCouponModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h3 className="text-xl font-bold">
+                {couponModalType === 'add' ? 'Thêm Khuyến Mại' : 'Chỉnh Sửa Khuyến Mại'}
+              </h3>
+              <button onClick={closeCouponModal} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <form className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Mã khuyến mại *</label>
+                    <input
+                      type="text"
+                      value={couponFormData.coupon_code}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, coupon_code: e.target.value.toUpperCase() })}
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="SALE50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Loại *</label>
+                    <select
+                      value={couponFormData.coupon_type}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, coupon_type: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    >
+                      <option value="percent">Giảm theo %</option>
+                      <option value="amount">Giảm theo số tiền</option>
+                      <option value="free_shipping">Miễn phí vận chuyển</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Giá trị giảm *</label>
+                    <input
+                      type="number"
+                      value={couponFormData.discount_value}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, discount_value: Number(e.target.value) })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Giới hạn lượt dùng</label>
+                    <input
+                      type="number"
+                      value={couponFormData.usage_limit}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, usage_limit: Number(e.target.value) })}
+                      className="w-full border rounded-lg px-3 py-2"
+                      placeholder="0 = không giới hạn"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Đơn tối thiểu</label>
+                    <input
+                      type="number"
+                      value={couponFormData.min_order_amount}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, min_order_amount: Number(e.target.value) })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Giảm tối đa</label>
+                    <input
+                      type="number"
+                      value={couponFormData.max_discount_amount}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, max_discount_amount: Number(e.target.value) })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Bắt đầu *</label>
+                    <input
+                      type="datetime-local"
+                      value={couponFormData.valid_from}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, valid_from: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Kết thúc *</label>
+                    <input
+                      type="datetime-local"
+                      value={couponFormData.valid_to}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, valid_to: e.target.value })}
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={couponFormData.is_active}
+                      onChange={(e) => setCouponFormData({ ...couponFormData, is_active: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">Kích hoạt khuyến mại</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Mô tả</label>
+                  <textarea
+                    value={couponFormData.description}
+                    onChange={(e) => setCouponFormData({ ...couponFormData, description: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 h-20"
+                    placeholder="Mô tả ngắn cho khuyến mại"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleSaveCoupon}
+                    disabled={loading}
+                    className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700 font-medium disabled:bg-gray-400"
+                  >
+                    {loading ? 'Đang xử lý...' : (couponModalType === 'add' ? 'Thêm Mới' : 'Cập Nhật')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeCouponModal}
                     className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 font-medium"
                   >
                     Hủy

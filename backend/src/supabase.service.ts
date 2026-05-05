@@ -165,6 +165,12 @@ export class SupabaseService extends BaseRepository {
 
   // ============ COUPONS ============
   getCoupon = (couponCode: string) => couponsRepository.getCoupon(couponCode);
+  incrementCouponUsedCount = (couponId: number, nextUsedCount: number) =>
+    couponsRepository.incrementUsedCount(couponId, nextUsedCount);
+  getAllCoupons = () => couponsRepository.getAllCoupons();
+  createCoupon = (payload: Record<string, any>) => couponsRepository.createCoupon(payload);
+  updateCoupon = (couponId: number, payload: Record<string, any>) => couponsRepository.updateCoupon(couponId, payload);
+  deleteCoupon = (couponId: number) => couponsRepository.deleteCoupon(couponId);
 
   // ============ PROMOTIONS ============
   getActiveCoupons = () => promotionsRepository.getActiveCoupons();

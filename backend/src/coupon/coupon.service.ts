@@ -5,6 +5,22 @@ import { SupabaseService } from '../supabase.service';
 export class CouponService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
+  async getAllCoupons() {
+    return await this.supabaseService.getAllCoupons();
+  }
+
+  async createCoupon(payload: Record<string, any>) {
+    return await this.supabaseService.createCoupon(payload);
+  }
+
+  async updateCoupon(couponId: number, payload: Record<string, any>) {
+    return await this.supabaseService.updateCoupon(couponId, payload);
+  }
+
+  async deleteCoupon(couponId: number) {
+    return await this.supabaseService.deleteCoupon(couponId);
+  }
+
   async validateCoupon(body: { code?: string; subtotal?: number; shipping_fee?: number }) {
     const code = String(body.code || '').trim();
     const subtotal = Number(body.subtotal || 0);
@@ -61,6 +77,15 @@ export class CouponService {
     }
 
     discountAmount = Math.max(0, Math.min(discountAmount, subtotal));
+
+    const nextUsedCount = (coupon.used_count || 0) + 1;
+    if (coupon.usage_limit !== null && coupon.usage_limit !== undefined) {
+      if (nextUsedCount > coupon.usage_limit) {
+        return { success: false, message: 'Coupon usage limit reached' };
+      }
+    }
+
+    await this.supabaseService.incrementCouponUsedCount(coupon.coupon_id, nextUsedCount);
 
     return {
       success: true,
